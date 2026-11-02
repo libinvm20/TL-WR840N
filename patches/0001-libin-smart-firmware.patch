@@ -1,3 +1,25 @@
+diff --git a/trunk/configs/templates/tplink/tl_wr845n-v4.config b/trunk/configs/templates/tplink/tl_wr845n-v4.config
+index 01026ca..2b396ba 100755
+--- a/trunk/configs/templates/tplink/tl_wr845n-v4.config
++++ b/trunk/configs/templates/tplink/tl_wr845n-v4.config
+@@ -23,7 +23,7 @@ CONFIG_FIRMWARE_ENABLE_IPV6=y
+ #CONFIG_FIRMWARE_INCLUDE_XFRM=y
+ 
+ ### Include network QoS scheduling modules. ~0.2MB
+-#CONFIG_FIRMWARE_INCLUDE_QOS=y
++CONFIG_FIRMWARE_INCLUDE_QOS=y
+ 
+ ### Include IMQ module for shapers (a bit of performance degradation). ~0.02MB
+ #CONFIG_FIRMWARE_INCLUDE_IMQ=y
+@@ -58,7 +58,7 @@ CONFIG_FIRMWARE_INCLUDE_SHORTCUT_FE=y
+ #CONFIG_FIRMWARE_INCLUDE_LANG_FR=y
+ #CONFIG_FIRMWARE_INCLUDE_LANG_NO=y
+ #CONFIG_FIRMWARE_INCLUDE_LANG_PL=y
+-CONFIG_FIRMWARE_INCLUDE_LANG_RU=y
++#CONFIG_FIRMWARE_INCLUDE_LANG_RU=y
+ #CONFIG_FIRMWARE_INCLUDE_LANG_SV=y
+ #CONFIG_FIRMWARE_INCLUDE_LANG_UK=y
+ 
 diff --git a/trunk/user/httpd/variables.c b/trunk/user/httpd/variables.c
 index 0ce398f9b..4f2840205 100755
 --- a/trunk/user/httpd/variables.c
