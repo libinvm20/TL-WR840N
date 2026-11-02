@@ -1414,8 +1414,37 @@ f^vh?erha3Om~E%3@neBBC>MCT`njxgN@xNAmiEkJ
 literal 0
 HcmV?d00001
 
+diff --git a/trunk/user/www/n56u_ribbon_fixed/device-map/clients.asp b/trunk/user/www/n56u_ribbon_fixed/device-map/clients.asp
+index 7eb13b8..0a49ae9 100755
+--- a/trunk/user/www/n56u_ribbon_fixed/device-map/clients.asp
++++ b/trunk/user/www/n56u_ribbon_fixed/device-map/clients.asp
+@@ -27,6 +27,10 @@ var m_dhcp = [<% get_nvram_list("LANHostConfig", "ManualDHCPList"); %>];
+ 
+ var nmap_fullscan = '<% nvram_get_x("", "networkmap_fullscan"); %>';
+ 
++var sc_on = '<% nvram_get_x("", "sc_enable"); %>';
++var sc_vip = ' <% nvram_get_x("", "sc_vip"); %> ';
++var sc_custom = ' <% nvram_get_x("", "sc_custom"); %>';
++
+ var DEVICE_TYPE = ["", "<#Device_type_01_PC#>", "<#Device_type_02_RT#>", "<#Device_type_03_AP#>", "<#Device_type_04_NAS#>", "<#Device_type_05_IC#>", "<#Device_type_06_OD#>"];
+ 
+ var clients = getclients(1,0);
+@@ -179,6 +183,13 @@ function add_client_row(table, atIndex, client, blocked, j){
+ 	typeCell.style.textAlign = "center";
+ 	typeCell.innerHTML = "<img title='"+ DEVICE_TYPE[client[5]]+"' src='/bootstrap/img/wl_device/" + client[5] +".gif'>";
+ 	nameCell.innerHTML = (client[6] == "1") ? "<a href=http://" + client[0] + " target='blank'>" + client[0] + "</a>" : client[0];
++	if (sc_on == '1') {	// Speed Control tag next to the name
++		var mm = ' ' + mac_add_delimiters(client[2]).toLowerCase();
++		if (sc_vip.indexOf(mm + ' ') >= 0)
++			nameCell.innerHTML += ' <span class="label label-success">VIP</span>';
++		else if (sc_custom.indexOf(mm + ',') >= 0)
++			nameCell.innerHTML += ' <span class="label label-warning">LIMIT</span>';
++	}
+ 	ipCell.innerHTML = (client[6] == "1") ? "<a href=http://" + client[1] + " target='blank'>" + client[1] + "</a>" : client[1];
+ 	macCell.innerHTML = "<a target='_blank' href='https://services13.ieee.org/RST/standards-ra-web/rest/assignments/?registry=MAC&text=" + client[2].substr(0,6) + "'>" + mac_add_delimiters(client[2]) + "</a>";
+ 	if (client[3] == 10){
 diff --git a/trunk/user/www/n56u_ribbon_fixed/state.js b/trunk/user/www/n56u_ribbon_fixed/state.js
-index 795a2ee8e..8523f300c 100755
+index 795a2ee..8ed78ad 100755
 --- a/trunk/user/www/n56u_ribbon_fixed/state.js
 +++ b/trunk/user/www/n56u_ribbon_fixed/state.js
 @@ -229,6 +229,7 @@ var enabledBtnCommit = '<% nvram_match_x("","nvram_manual", "1", "btn-info"); %>
@@ -1426,7 +1455,47 @@ index 795a2ee8e..8523f300c 100755
  	var bc = '';
  	var style_2g = 'width:55px;';
  	var style_5g = 'width:55px;';
-@@ -390,7 +391,7 @@ tabtitle[3] = new Array("", "<#menu5_3_1#>", "<#menu5_3_3#>", "<#menu5_3_4#>", "
+@@ -275,7 +276,7 @@ function show_banner(L3){
+ 
+ 	// block system info
+ 	bc += '<div class="span6">\n';
+-	bc += '<div class="well" style="margin-bottom: 0px; height: 109px; padding: 7px 6px 6px 6px;">\n';
++	bc += '<div class="well" style="margin-bottom: 0px; height: 134px; padding: 7px 6px 6px 6px;">\n';
+ 	bc += '<div class="row-fluid">\n';
+ 
+ 	bc += '<div id="main_info">\n';
+@@ -296,6 +297,10 @@ function show_banner(L3){
+ 	bc += '    <td><#SI_Uptime#></td>\n';
+ 	bc += '    <td><span id="uptime_info">&nbsp;</span></td>\n';
+ 	bc += '  </tr>\n';
++	bc += '  <tr>\n';
++	bc += '    <td>WAN speed</td>\n';
++	bc += '    <td><span id="wan_speed"> -- </span></td>\n';
++	bc += '  </tr>\n';
+ 	bc += '</table>\n';
+ 	bc += '</div>\n';
+ 
+@@ -347,7 +352,7 @@ function show_banner(L3){
+ 
+ 	// block firmware version
+ 	bc += '<div class="span6">\n';
+-	bc += '<div class="well" style="margin-bottom: 0px; height: 109px; padding: 5px 6px 8px 6px;">\n';
++	bc += '<div class="well" style="margin-bottom: 0px; height: 134px; padding: 5px 6px 8px 6px;">\n';
+ 	bc += '<div class="row-fluid">\n';
+ 	bc += '<table class="table table-condensed" style="margin-bottom: 0px">\n';
+ 	bc += '  <tr>\n';
+@@ -359,6 +364,10 @@ function show_banner(L3){
+ 	bc += '    <td><div class="form-inline"><input type="button" id="wifi2_b_g" class="btn btn-mini '+enabledGuest2Gclass+'" style="'+style_2g+'" value='+title_2g+' onclick="go_wguest(2);">&nbsp;<input type="button" id="wifi5_b_g" style="'+style_5g+'" class="btn btn-mini '+enabledGuest5Gclass+'" value='+title_5g+' onclick="go_wguest(5);"></div></td>\n';
+ 	bc += '  </tr>\n';
+ 	bc += '  <tr>\n';
++	bc += '    <td>Internet:</td>\n';
++	bc += '    <td><span id="wan_ip_info"> -- </span></td>\n';
++	bc += '  </tr>\n';
++	bc += '  <tr>\n';
+ 	bc += '    <td><#General_x_FirmwareVersion_itemname#></td>\n';
+ 	bc += '    <td><a href="/Advanced_FirmwareUpgrade_Content.asp"><span id="firmver" class="time"></span></a></td>\n';
+ 	bc += '  </tr>\n';
+@@ -390,7 +399,7 @@ tabtitle[3] = new Array("", "<#menu5_3_1#>", "<#menu5_3_3#>", "<#menu5_3_4#>", "
  tabtitle[4] = new Array("", "<#menu5_5_1#>", "<#menu5_5_5#>", "<#menu5_5_2#>", "<#menu5_5_3#>", "<#menu5_5_4#>");
  tabtitle[5] = new Array("", "<#menu5_4_3#>", "<#menu5_4_1#>", "<#menu5_4_2#>", "<#menu5_4_4#>", "<#menu5_4_5#>");
  tabtitle[6] = new Array("", "<#menu5_6_2#>", "<#menu5_6_5#>", "<#menu5_6_1#>", "<#menu5_6_3#>", "<#menu5_6_4#>", "<#menu5_6_6#>");
@@ -1435,7 +1504,7 @@ index 795a2ee8e..8523f300c 100755
  tabtitle[8] = new Array("", "<#menu5_11#>", "<#menu5_12#>", "WAN", "", "", "", "", "", "", "");
  tabtitle[9] = new Array("", "<#menu5_7_2#>", "<#menu5_7_3#>", "<#menu5_7_5#>", "<#menu5_7_6#>", "<#menu5_7_8#>");
  
-@@ -403,7 +404,7 @@ tablink[3] = new Array("", "Advanced_WAN_Content.asp", "Advanced_IPv6_Content.as
+@@ -403,7 +412,7 @@ tablink[3] = new Array("", "Advanced_WAN_Content.asp", "Advanced_IPv6_Content.as
  tablink[4] = new Array("", "Advanced_BasicFirewall_Content.asp", "Advanced_Netfilter_Content.asp", "Advanced_URLFilter_Content.asp", "Advanced_MACFilter_Content.asp", "Advanced_Firewall_Content.asp");
  tablink[5] = new Array("", "Advanced_AiDisk_others.asp", "Advanced_AiDisk_samba.asp", "Advanced_AiDisk_ftp.asp", "Advanced_Modem_others.asp", "Advanced_Printer_others.asp");
  tablink[6] = new Array("", "Advanced_System_Content.asp", "Advanced_Services_Content.asp", "Advanced_OperationMode_Content.asp", "Advanced_FirmwareUpgrade_Content.asp", "Advanced_SettingBackup_Content.asp", "Advanced_Console_Content.asp");
@@ -1444,7 +1513,7 @@ index 795a2ee8e..8523f300c 100755
  tablink[8] = new Array("", "Main_WStatus2g_Content.asp", "Main_WStatus_Content.asp", "", "", "", "", "", "", "", "");
  tablink[9] = new Array("", "Main_LogStatus_Content.asp", "Main_DHCPStatus_Content.asp", "Main_IPTStatus_Content.asp", "Main_RouteStatus_Content.asp", "Main_CTStatus_Content.asp");
  
-@@ -567,12 +568,14 @@ function show_footer(){
+@@ -567,12 +576,14 @@ function show_footer(){
  	footer_code = '<div align="center" class="bottom-image"></div>\n';
  	footer_code +='<div align="center" class="copyright"><#footer_copyright_desc#></div>\n';
  	footer_code +='<div align="center">\n';
@@ -1459,12 +1528,13 @@ index 795a2ee8e..8523f300c 100755
  
  	flash_button();
  }
-@@ -647,6 +650,69 @@ function show_loading_obj(){
+@@ -647,6 +658,123 @@ function show_loading_obj(){
  	id_check_status = setTimeout('hideLoading();', 3000);
  }
  
 +// Branding + mobile layout (Libin build). Injected from here because
 +// state.js is never cached by the router, while .png/.css are cached for 30 days.
++var im_theme_css = 'html{color-scheme:dark}::selection{background:#0a6cc2;color:#fff}input[type=checkbox],input[type=radio]{accent-color:#0a8bd6}';
 +var im_mobile_css = ''
 + + '@media (max-width: 979px) {'
 + + ' body { overflow-x: hidden; }'
@@ -1481,6 +1551,55 @@ index 795a2ee8e..8523f300c 100755
 + + ' .box_head { font-size: 15px; }'
 + + '}';
 +
++// Live WAN info for the status bar: IP, connected time, current speed.
++var wan_prev = null, wan_live_on = 0;
++
++function wan_fmt_rate(bps){
++	if (bps >= 1000000) return (bps / 1000000).toFixed(1) + ' Mbps';
++	if (bps >= 1000) return Math.round(bps / 1000) + ' kbps';
++	return '0 kbps';
++}
++
++function wan_fmt_time(sec){
++	var d = Math.floor(sec / 86400), h = Math.floor(sec % 86400 / 3600), m = Math.floor(sec % 3600 / 60);
++	return d ? d + 'd ' + h + 'h' : (h ? h + 'h ' + m + 'm' : m + 'm');
++}
++
++function wan_live_show(){
++	var $j = jQuery.noConflict(), ip = wanlink_ip4_wan(), c = '#d9534f', txt;
++	if (new_wan_internet == '1') c = '#5cb85c';
++	else if (new_wan_internet == '2') c = '#f0ad4e';
++	txt = '<span style="color:' + c + ';">&#9679;</span> ';
++	txt += (ip && ip != '---') ? ip + ' &middot; ' + wan_fmt_time(wanlink_uptime()) : 'not connected';
++	$j('#wan_ip_info').html(txt);
++
++	var now = new Date().getTime(), rx = wanlink_bytes_rx(), tx = wanlink_bytes_tx(), s = ' -- ';
++	if (wan_prev && now > wan_prev.t && rx >= wan_prev.rx && tx >= wan_prev.tx) {
++		var dt = (now - wan_prev.t) / 1000;
++		s = '&darr; ' + wan_fmt_rate((rx - wan_prev.rx) * 8 / dt) + ' &nbsp;&uarr; ' + wan_fmt_rate((tx - wan_prev.tx) * 8 / dt);
++	}
++	wan_prev = {t: now, rx: rx, tx: tx};
++	$j('#wan_speed').html(s);
++}
++
++function wan_live(){
++	var $j = jQuery.noConflict();
++	if (!document.getElementById('wan_speed'))
++		return;
++	if (document.hidden) {
++		setTimeout(wan_live, 3000);
++		return;
++	}
++	$j.ajax({
++		type: 'get',
++		url: '/status_wanlink.asp',
++		dataType: 'script',
++		cache: true,
++		success: function(){ wan_live_show(); },
++		complete: function(){ setTimeout(wan_live, 3000); }
++	});
++}
++
 +function apply_branding(){
 +	var d = document, h = d.getElementsByTagName('head')[0], i, t;
 +	if (h && !d.querySelector('meta[name="viewport"]')) {
@@ -1492,8 +1611,12 @@ index 795a2ee8e..8523f300c 100755
 +	if (h && !d.getElementById('im_mobile_css')) {
 +		var st = d.createElement('style');
 +		st.id = 'im_mobile_css';
-+		st.appendChild(d.createTextNode(im_mobile_css));
++		st.appendChild(d.createTextNode(im_theme_css + im_mobile_css));
 +		h.appendChild(st);
++	}
++	if (!wan_live_on && d.getElementById('wan_speed')) {
++		wan_live_on = 1;
++		wan_live();
 +	}
 +	var lg = d.getElementById('logo');
 +	if (lg)
