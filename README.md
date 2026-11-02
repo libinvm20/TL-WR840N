@@ -1,11 +1,11 @@
 # Libin Smart Router Firmware: TL-WR845N v4
 
-Custom Padavan firmware for the **TP-Link TL-WR845N v4** (MT7628NN, 4 MB flash, 32 MB RAM), by **[Libin](https://iqbalmahmud.com)**.
+Custom Padavan firmware for the **TP-Link TL-WR845N v4** (MT7628NN, 4 MB flash, 32 MB RAM), by **Libin**.
 
 - **Smart WAN Watchdog**: the router fixes its own internet drops.
 - **Speed Control**: chosen devices get full speed, everyone else gets the limit you set. Set it from its own web page.
 - **Dark theme**: the whole web UI, including the icons, in dark colours. No extra size.
-- **English / বাংলা**: switch the web UI language with one click.
+- **Live status bar**: WAN IP, connected time, internet state and live download/upload speed on every page.
 - **Libin branding**: logo, page title, footer, SSH banner, default Wi-Fi name.
 
 Based on [lucktu/padavan_TW641](https://github.com/lucktu/padavan_TW641) (padavan-ng, Linux 3.4), pinned to commit `90f694d`. GPL v2.
@@ -17,13 +17,14 @@ Based on [lucktu/padavan_TW641](https://github.com/lucktu/padavan_TW641) (padava
 | Smart WAN Watchdog | ✅ | ✅ |
 | Hardware CPU watchdog | ✅ | ✅ |
 | Speed Control (VIP / per-device / shared pool) | ❌ | ✅ web page + commands |
-| Bengali (বাংলা) web UI with one-click switch | ❌ | ✅ |
-| Dark theme (pages, buttons, tables, icons) | ❌ | ✅ |
+| Dark theme (pages, buttons, tables, icons, scrollbars) | ❌ | ✅ |
+| Live WAN speed, WAN IP and connected time in the status bar | ❌ | ✅ |
+| VIP / LIMIT tags on the Network Map client list | ❌ | ✅ |
 | VPN Server / VPN Client menu entries | shown | hidden (not used on this router) |
 | Traffic control (`tc`, HTB) | ❌ | ✅ |
 | IPSet | ✅ | ❌ removed to make room |
 | Branding | Padavan | Libin |
-| Default Wi-Fi name | `TL_WR845N-V4_%s` (bug) | `IqbalMahmud_WiFi` |
+| Default Wi-Fi name | `TL_WR845N-V4_%s` (bug) | `Libin_WiFi` |
 
 Upgrading from v1 keeps your settings (Wi-Fi, PPPoE, password). Take a **Settings Backup** first anyway.
 
@@ -111,6 +112,19 @@ The web UI uses a dark theme everywhere: panels, tables, tabs, menus, buttons, i
 - **Blue stays blue:** title bars and primary buttons keep their blue colour and white text.
 - **Browser cache:** the browser keeps CSS and images for about 30 days. After upgrading, press **Ctrl+F5** to see the new theme.
 
+## Status bar
+
+The box at the top of every page has two new rows, refreshed every 3 seconds (paused while the tab is hidden):
+
+- **WAN speed**: current download ↓ and upload ↑ on the internet connection.
+- **Internet**: a dot (green = internet OK, amber = limited, red = down), the WAN IP and how long the connection has been up.
+
+The speed comes from the WAN interface counters, so it shows the router's whole internet traffic, not one device. If it stays at 0 during a download, tell me which build you used.
+
+## Network Map
+
+When Speed Control is on, the client list on the Network Map shows a green **VIP** tag or a yellow **LIMIT** tag next to each device that has a Speed Control rule.
+
 ## Menu
 
 The **VPN Server** and **VPN Client** menu entries are hidden because this build doesn't include OpenVPN, WireGuard or IPsec. This only hides the menu items; it does not change the firmware size.
@@ -119,19 +133,13 @@ The **VPN Server** and **VPN Client** menu entries are hidden because this build
 
 The web UI adapts to phones and tablets: the menu stacks above the page, settings rows stack, and wide tables scroll sideways. Desktop layout is unchanged.
 
-## Language: English / বাংলা
-
-- Every page has an **English | বাংলা** switch in the footer and a floating 🌐 button in the bottom-right corner.
-- Your choice is saved on the router. Browsers set to Bengali open in Bengali automatically on first visit.
-- Translated: menus, status bar, Network Map, Internet (WAN), Wi-Fi 2.4GHz, LAN, DHCP, Administration, Firmware Upgrade, Settings backup, System Log, Internet Detector, Console and Speed Control (about 450 texts). Deeper advanced pages fall back to English automatically.
-- Technical terms (PPPoE, DHCP, MAC, SSID, MTU) stay in English on purpose.
-- Translations live in `BN.dict` inside the patch; corrections are welcome.
+The web UI is **English only**; extra language packs (Russian, Chinese and others) are left out to save flash space.
 
 ## Build (GitHub Actions)
 
 1. Put this folder in a GitHub repository, keeping `.github/workflows` and `patches`.
 2. **Actions → Build Libin Smart Firmware → Run workflow**.
-3. After 30–60 min download the **IqbalMahmud-WR845Nv4-v2** artifact: `IqbalMahmud_WR845Nv4_v2.bin` + `SHA256SUMS.txt`.
+3. After 30–60 min download the **Libin-WR845Nv4-v2** artifact: `Libin_WR845Nv4_v2.bin` + `SHA256SUMS.txt`.
 
 The build fails on purpose if the image is larger than the 3.84 MB firmware partition.
 
@@ -146,7 +154,7 @@ The patch contains binary changes (logo and icon sheet), so apply it with `git a
 ## Defaults (fresh install or after reset)
 
 - Web UI: `http://192.168.0.1`, user `admin`, password `admin`
-- Wi-Fi: `IqbalMahmud_WiFi`, password `1234567890`
+- Wi-Fi: `Libin_WiFi`, password `1234567890`
 
 **Change both immediately.**
 
@@ -160,5 +168,5 @@ The upstream footer notice ("Firmware distribution is prohibited / Non-Commercia
 
 ```
 .github/workflows/build.yml                   Build pipeline
-patches/0001-iqbal-mahmud-smart-firmware.patch All changes to the Padavan source
+patches/0001-libin-smart-firmware.patch All changes to the Padavan source
 ```
