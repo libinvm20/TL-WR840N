@@ -40,19 +40,6 @@ index 0ce398f9b..4f2840205 100755
  			{"di_timeout", "", NULL, FALSE },
  			{"di_time_done", "", NULL, FALSE},
  			{"di_time_fail", "", NULL, FALSE},
-diff --git a/trunk/user/rc/rc.c b/trunk/user/rc/rc.c
-index e625a8d3e..e81822937 100644
---- a/trunk/user/rc/rc.c
-+++ b/trunk/user/rc/rc.c
-@@ -919,6 +919,8 @@ init_router(void)
- 	// system ready
- 	system("/etc/storage/started_script.sh &");
- 	system("/usr/bin/autostart.sh &");
-+	system("/usr/bin/wan_watchdog.sh &");
-+	system("/usr/bin/speedctl daemon &");
- }
- 
- /*
 diff --git a/trunk/user/scripts/Makefile b/trunk/user/scripts/Makefile
 index 61c347da7..8b87e9ac7 100755
 --- a/trunk/user/scripts/Makefile
@@ -1725,3 +1712,338 @@ index 795a2ee..dd2a889 100755
  function submit_language(){
  	if($("select_lang").value != $("preferred_lang").value){
  		showLoading();
+diff --git a/trunk/user/rc/rc.c b/trunk/user/rc/rc.c
+index e625a8d..94bfd41 100644
+--- a/trunk/user/rc/rc.c
++++ b/trunk/user/rc/rc.c
+@@ -228,6 +228,10 @@ init_gpio_leds_buttons(void)
+ #if defined (CONFIG_RALINK_MT7628) && (BOARD_GPIO_LED_WAN == 43)
+ 	cpu_gpio_mode_set_bit(34, 1); // change GPIO Mode for P0_LED_AN
+ 	cpu_gpio_mode_set_bit(50, 1); // change GPIO Mode for P0_LED_KN
++#endif
++#if defined (CONFIG_RALINK_MT7628) && (BOARD_GPIO_LED_WAN == 41)
++	cpu_gpio_mode_set_bit(38, 1); // change GPIO Mode for P2_LED_AN
++	cpu_gpio_mode_set_bit(54, 1); // change GPIO Mode for P2_LED_KN
+ #endif
+ 	cpu_gpio_set_pin_direction(BOARD_GPIO_LED_WAN, 1);
+ #if defined (BOARD_GPIO_LED_WAN_INVERTED)
+@@ -919,6 +923,8 @@ init_router(void)
+ 	// system ready
+ 	system("/etc/storage/started_script.sh &");
+ 	system("/usr/bin/autostart.sh &");
++	system("/usr/bin/wan_watchdog.sh &");
++	system("/usr/bin/speedctl daemon &");
+ }
+ 
+ /*
+diff --git a/trunk/user/www/n56u_ribbon_fixed/Main_TrafficMonitor_last24.asp b/trunk/user/www/n56u_ribbon_fixed/Main_TrafficMonitor_last24.asp
+index 4ade57a..496806e 100755
+--- a/trunk/user/www/n56u_ribbon_fixed/Main_TrafficMonitor_last24.asp
++++ b/trunk/user/www/n56u_ribbon_fixed/Main_TrafficMonitor_last24.asp
+@@ -105,7 +105,7 @@ var net_chart_24 = {
+     },{
+         type: 'areaspline',
+         name: '<#Uplink#>',
+-        color: '#003EBA',
++        color: '#8e44f0',
+         gapSize: 5,
+         threshold: null,
+         data: (prepare_array_chart)(1)
+diff --git a/trunk/user/www/n56u_ribbon_fixed/Main_TrafficMonitor_realtime.asp b/trunk/user/www/n56u_ribbon_fixed/Main_TrafficMonitor_realtime.asp
+index 86c41be..3888592 100755
+--- a/trunk/user/www/n56u_ribbon_fixed/Main_TrafficMonitor_realtime.asp
++++ b/trunk/user/www/n56u_ribbon_fixed/Main_TrafficMonitor_realtime.asp
+@@ -114,7 +114,7 @@ var net_chart_rt = {
+     },{
+         type: 'areaspline',
+         name: '<#Uplink#>',
+-        color: '#003EBA',
++        color: '#8e44f0',
+         gapSize: 5,
+         threshold: null,
+         data: (prepare_array_chart)()
+diff --git a/trunk/user/www/n56u_ribbon_fixed/bootstrap/js/highcharts_theme.js b/trunk/user/www/n56u_ribbon_fixed/bootstrap/js/highcharts_theme.js
+index 9874c0a..501e67d 100755
+--- a/trunk/user/www/n56u_ribbon_fixed/bootstrap/js/highcharts_theme.js
++++ b/trunk/user/www/n56u_ribbon_fixed/bootstrap/js/highcharts_theme.js
+@@ -6,24 +6,26 @@
+  * To change this template use File | Settings | File Templates.
+  */
+ Highcharts.theme = {
+-    colors: ['#058DC7', '#50B432', '#ED561B', '#DDDF00', '#24CBE5', '#64E572', '#FF9655', '#FFF263', '#6AF9C4'],
++    colors: ['#8e44f0', '#50B432', '#ED561B', '#DDDF00', '#b08cf5', '#64E572', '#FF9655', '#FFF263', '#6AF9C4'],
+     chart: {
+         backgroundColor: {
+             linearGradient: [0, 0, 500, 500],
+             stops: [
+-                [0, 'rgb(255, 255, 255)'],
+-                [1, 'rgb(240, 240, 255)']
++                [0, '#2a2a2a'],
++                [1, '#222222']
+             ]
+         },
+         borderRadius: 5,
+         borderWidth: 1,
+-        plotBackgroundColor: 'rgba(255, 255, 255, .9)',
+-        plotShadow: true,
++        borderColor: '#444',
++        plotBackgroundColor: 'rgba(17, 17, 17, .7)',
++        plotShadow: false,
++        plotBorderColor: '#444',
+         plotBorderWidth: 1
+     },
+     title: {
+         style: {
+-            color: '#000',
++            color: '#ddd',
+             fontFamily: '"Trebuchet MS", Verdana, sans-serif',
+             fontWeight: 'bold',
+             fontSize: '16px'
+@@ -31,7 +33,7 @@ Highcharts.theme = {
+     },
+     subtitle: {
+         style: {
+-            color: '#666',
++            color: '#aaa',
+             fontFamily: '"Trebuchet MS", Verdana, sans-serif',
+             fontWeight: 'bold',
+             fontSize: '12px'
+@@ -40,22 +42,22 @@ Highcharts.theme = {
+     xAxis: {
+         gridLineWidth: 0,
+         lineWidth: 0,
+-        lineColor: '#000',
++        lineColor: '#555',
+         tickWidth: 1,
+         tickLength: 4,
+-        tickColor: '#999',
++        tickColor: '#666',
+         labels: {
+             y: 15,
+             autoRotation: false,
+             style: {
+-                color: '#888',
++                color: '#aaa',
+                 fontFamily: '"Trebuchet MS", Verdana, sans-serif',
+                 fontSize: '11px'
+             }
+         },
+         title: {
+             style: {
+-                color: '#6D869F',
++                color: '#a58bd6',
+                 fontFamily: '"Trebuchet MS", Verdana, sans-serif',
+                 fontWeight: 'bold',
+                 fontSize: '12px'
+@@ -64,24 +66,25 @@ Highcharts.theme = {
+     },
+     yAxis: {
+         gridLineWidth: 1,
++        gridLineColor: '#3a3a3a',
+         minorGridLineWidth: 0,
+         minorTickInterval: 'auto',
+         lineWidth: 0,
+-        lineColor: '#000',
++        lineColor: '#555',
+         tickWidth: 0,
+-        tickColor: '#999',
++        tickColor: '#666',
+         labels: {
+             x: 2,
+             align: 'left',
+             style: {
+-                color: '#888',
++                color: '#aaa',
+                 fontFamily: '"Trebuchet MS", Verdana, sans-serif',
+                 fontSize: '11px'
+             }
+         },
+         title: {
+             style: {
+-                color: '#6D869F',
++                color: '#a58bd6',
+                 fontFamily: '"Trebuchet MS", Verdana, sans-serif',
+                 fontWeight: 'bold',
+                 fontSize: '12px'
+@@ -94,29 +97,68 @@ Highcharts.theme = {
+         }
+     },
+     tooltip: {
++        backgroundColor: 'rgba(30, 30, 30, .95)',
++        borderColor: '#8e44f0',
+         borderWidth: 1,
+         borderRadius: 3,
+-        shadow: false
++        shadow: false,
++        style: {
++            color: '#ddd'
++        }
+     },
+     legend: {
+         borderWidth: 1,
++        borderColor: '#444',
+         borderRadius: 3,
+         itemStyle: {
+-            color: '#333',
++            color: '#ddd',
+             fontFamily: '"Trebuchet MS", Verdana, sans-serif',
+             fontWeight: 'normal',
+             fontSize: '12px'
+         },
+         itemHoverStyle: {
+-            color: 'gray'
++            color: '#fff'
+         }
+     },
++    rangeSelector: {
++        buttonTheme: {
++            fill: '#333',
++            stroke: '#444',
++            style: { color: '#ddd' },
++            states: {
++                hover: { fill: '#444', stroke: '#555', style: { color: '#fff' } },
++                select: { fill: '#6d28d9', stroke: '#8e44f0', style: { color: '#fff' } }
++            }
++        },
++        labelStyle: { color: '#aaa' }
++    },
+     navigator: {
+-        margin: 10
++        margin: 10,
++        maskFill: 'rgba(142, 68, 240, .25)',
++        outlineColor: '#555',
++        handles: { backgroundColor: '#3a3a3a', borderColor: '#aaa' },
++        series: { color: '#8e44f0', lineColor: '#8e44f0' },
++        xAxis: {
++            gridLineColor: '#3a3a3a',
++            labels: { style: { color: '#aaa' } }
++        }
++    },
++    scrollbar: {
++        barBackgroundColor: '#555',
++        barBorderColor: '#666',
++        buttonBackgroundColor: '#3a3a3a',
++        buttonBorderColor: '#555',
++        buttonArrowColor: '#ccc',
++        rifleColor: '#ccc',
++        trackBackgroundColor: '#222',
++        trackBorderColor: '#444'
++    },
++    credits: {
++        style: { color: '#777' }
+     },
+     labels: {
+         style: {
+-            color: '#99b'
++            color: '#a58bd6'
+         }
+     }
+ };
+diff --git a/trunk/user/www/n56u_ribbon_fixed/net_speed_tabs.js b/trunk/user/www/n56u_ribbon_fixed/net_speed_tabs.js
+index 60f544e..d9b6623 100755
+--- a/trunk/user/www/n56u_ribbon_fixed/net_speed_tabs.js
++++ b/trunk/user/www/n56u_ribbon_fixed/net_speed_tabs.js
+@@ -77,7 +77,7 @@ function bytesToBitrate(bytes, precision){
+ function initTab()
+ {
+ 	E('rx-sel').style.background = '#FF9000';
+-	E('tx-sel').style.background = '#003EBA';
++	E('tx-sel').style.background = '#8e44f0';
+ 
+ 	E('rx-current').innerHTML = bytesToBitrate(0, 2);
+ 	E('rx-avg').innerHTML = bytesToBitrate(0, 2);
+diff --git a/trunk/user/httpd/httpd.c b/trunk/user/httpd/httpd.c
+index 3870956..961d49d 100755
+--- a/trunk/user/httpd/httpd.c
++++ b/trunk/user/httpd/httpd.c
+@@ -980,6 +980,13 @@ handle_request(FILE *conn_fp, const conn_item_t *item)
+ 			http_logout(&conn_ip);
+ 			if (method_id == HTTP_METHOD_POST)
+ 				eat_post_data(conn_fp, clen);
++			/* page request without valid login: show our login page instead of the
++			   browser pop-up. The login page asks with "?xhr=1" and still gets the
++			   normal challenge, so the browser remembers the login. */
++			if (method_id == HTTP_METHOD_GET && !(query && strstr(query, "xhr=1"))) {
++				send_error( 302, "Found", "Location: /login.html", "Login required.", conn_fp );
++				return;
++			}
+ 			send_authenticate(conn_fp);
+ 			return;
+ 		}
+diff --git a/trunk/user/httpd/web_ex.c b/trunk/user/httpd/web_ex.c
+index 4483504..c33dac7 100755
+--- a/trunk/user/httpd/web_ex.c
++++ b/trunk/user/httpd/web_ex.c
+@@ -3924,6 +3924,9 @@ struct mime_handler mime_handlers[] = {
+ 	{ "**.ico", "image/x-icon", NULL, NULL, do_file, 0 }, // 2013.04 Eagle23
+ 	{ "**.svg", "image/svg+xml", NULL, NULL, do_file, 0 }, // 2016.04 Volt1
+ 
++	/* public login page (no login needed) */
++	{ "login.html", "text/html", no_cache_IE, NULL, do_file, 0 },
++
+ 	/* no-cached html/asp files with translations */
+ 	{ "**.htm*", "text/html", no_cache_IE, do_html_apply_post, do_ej, 1 },
+ 	{ "**.asp*", "text/html", no_cache_IE, do_html_apply_post, do_ej, 1 },
+diff --git a/trunk/user/www/n56u_ribbon_fixed/login.html b/trunk/user/www/n56u_ribbon_fixed/login.html
+new file mode 100644
+index 0000000..cff3023
+--- /dev/null
++++ b/trunk/user/www/n56u_ribbon_fixed/login.html
+@@ -0,0 +1,57 @@
++<!DOCTYPE html>
++<html>
++<head>
++<meta charset="utf-8">
++<meta name="viewport" content="width=device-width, initial-scale=1">
++<meta http-equiv="Pragma" content="no-cache">
++<meta http-equiv="Expires" content="-1">
++<title>Login</title>
++<link rel="shortcut icon" href="/images/favicon.ico">
++<style>
++html{color-scheme:dark}
++body{margin:0;background:#181818;color:#ddd;font:14px Arial,Helvetica,sans-serif;display:flex;min-height:100vh;align-items:center;justify-content:center}
++.box{width:300px;max-width:90%;background:#262626;border:1px solid #444;border-radius:6px;padding:22px 24px;text-align:center}
++.box img{width:150px;height:71px}
++h1{font-size:15px;font-weight:normal;color:#aaa;margin:6px 0 16px}
++input{display:block;box-sizing:border-box;width:100%;margin:0 0 10px;padding:8px 10px;background:#111;color:#ddd;border:1px solid #444;border-radius:4px;font-size:14px}
++input:focus{outline:0;border-color:#8e44f0}
++button{width:100%;padding:9px;border:1px solid #6d28d9;border-radius:4px;background:linear-gradient(#8e44f0,#6d28d9);color:#fff;font-size:14px;cursor:pointer}
++button:disabled{opacity:.6;cursor:default}
++#err{min-height:18px;color:#e07a78;margin:2px 0 8px}
++a{color:#a58bd6;font-size:12px;text-decoration:none}
++</style>
++<script>
++function doLogin(){
++	var u = document.getElementById('u').value, p = document.getElementById('p'),
++	    e = document.getElementById('err'), b = document.getElementById('b'), x = new XMLHttpRequest();
++	e.textContent = '';
++	b.disabled = true;
++	x.open('GET', '/system_status_data.asp?xhr=1&_=' + new Date().getTime(), true, u, p.value);
++	x.onreadystatechange = function(){
++		if (x.readyState != 4)
++			return;
++		b.disabled = false;
++		if (x.status == 200)
++			location.replace('/index.asp');
++		else {
++			e.textContent = 'Wrong username or password.';
++			p.select();
++		}
++	};
++	x.send(null);
++	return false;
++}
++</script>
++</head>
++<body onload="document.getElementById('p').focus();">
++<form class="box" onsubmit="return doLogin();">
++	<img src="/bootstrap/img/libin_logo.png" alt="">
++	<h1>Sign in to your router</h1>
++	<input id="u" type="text" value="admin" autocomplete="username" autocapitalize="off">
++	<input id="p" type="password" placeholder="Password" autocomplete="current-password">
++	<div id="err"></div>
++	<button id="b" type="submit">Sign in</button>
++	<p><a href="/index.asp?xhr=1">Use browser login</a></p>
++</form>
++</body>
++</html>
