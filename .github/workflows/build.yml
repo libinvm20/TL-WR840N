@@ -38,18 +38,16 @@ jobs:
           cd src
           echo "Applying ../$PATCH_FILE"
           git apply --whitespace=nowarn "../$PATCH_FILE"
-          chmod +x trunk/user/scripts/wan_watchdog.sh trunk/user/scripts/speedctl.sh
+          chmod +x trunk/user/scripts/wan_watchdog.sh trunk/user/scripts/devusage.sh
 
-      - name: Configure (English only, Speed Control on, IPSet off)
+      - name: Configure (English only, IPSet off)
         run: |
           C=src/trunk/.config
           cp "src/trunk/configs/templates/$TEMPLATE" "$C"
           sed -i 's/^CONFIG_FIRMWARE_INCLUDE_LANG_RU=y/#CONFIG_FIRMWARE_INCLUDE_LANG_RU=y/' "$C"
-          # Speed Control needs traffic control (tc + HTB); IPSet is dropped to make room in 4 MB flash
-          sed -i 's/^#CONFIG_FIRMWARE_INCLUDE_QOS=y/CONFIG_FIRMWARE_INCLUDE_QOS=y/' "$C"
+          # IPSet is dropped to make room in 4 MB flash
           sed -i 's/^CONFIG_FIRMWARE_INCLUDE_IPSET=y/#CONFIG_FIRMWARE_INCLUDE_IPSET=y/' "$C"
-          grep -q '^CONFIG_FIRMWARE_INCLUDE_QOS=y' "$C" || { echo "QoS not enabled"; exit 1; }
-          grep -E "PRODUCT_ID|LANG_RU|INCLUDE_QOS|INCLUDE_IPSET" "$C"
+          grep -E "PRODUCT_ID|LANG_RU|INCLUDE_IPSET|SHORTCUT_FE" "$C"
 
       - name: Build firmware (auto-trim until it fits 4 MB flash)
         run: |
@@ -85,10 +83,10 @@ jobs:
           echo "::error::Still too big after all trims: $size of $MAX_FW_SIZE bytes"
           exit 1
 
-      - name: Check Speed Control is inside the image
+      - name: Check Libin features are inside the image
         run: |
           R=src/trunk/romfs
-          for f in usr/bin/speedctl usr/bin/wan_watchdog.sh bin/tc www/Advanced_SpeedControl_Content.asp; do
+          for f in usr/bin/devusage usr/bin/wan_watchdog.sh www/Advanced_DeviceUsage_Content.asp www/device_usage_data.asp www/login.html; do
             [ -e "$R/$f" ] && echo "OK  /$f" || echo "::warning::MISSING /$f in image"
           done
 
