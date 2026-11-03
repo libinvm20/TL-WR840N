@@ -4,7 +4,8 @@ Custom Padavan firmware for the **TP-Link TL-WR845N v4** (MT7628NN, 4 MB flash, 
 
 - **Smart WAN Watchdog**: the router fixes its own internet drops.
 - **Speed Control**: chosen devices get full speed, everyone else gets the limit you set. Set it from its own web page.
-- **Dark theme**: the whole web UI, including the icons, in dark colours. No extra size.
+- **Dark purple theme**: the whole web UI, including the icons, in dark colours with a purple accent. No extra size.
+- **Login page**: a styled login page instead of the browser pop-up, with the old pop-up kept as a fallback.
 - **Live status bar**: WAN IP, connected time, internet state and live download/upload speed on every page.
 - **Libin branding**: logo, page title, footer, SSH banner, default Wi-Fi name.
 
@@ -17,7 +18,7 @@ Based on [lucktu/padavan_TW641](https://github.com/lucktu/padavan_TW641) (padava
 | Smart WAN Watchdog | ✅ | ✅ |
 | Hardware CPU watchdog | ✅ | ✅ |
 | Speed Control (VIP / per-device / shared pool) | ❌ | ✅ web page + commands |
-| Dark theme (pages, buttons, tables, icons, scrollbars) | ❌ | ✅ |
+| Dark purple theme (pages, buttons, tables, icons, scrollbars) | ❌ | ✅ |
 | Live WAN speed, WAN IP and connected time in the status bar | ❌ | ✅ |
 | VIP / LIMIT tags on the Network Map client list | ❌ | ✅ |
 | VPN Server / VPN Client menu entries | shown | hidden (not used on this router) |
@@ -102,14 +103,15 @@ speedctl on
 - Traffic between devices on your own network (e.g. file copy laptop → PC) is never limited, only internet traffic.
 - Activity is logged under **Administration → System Log** with the tag `speedctl`.
 
-## Dark theme
+## Dark purple theme
 
 The web UI uses a dark theme everywhere: panels, tables, tabs, menus, buttons, inputs, pop-ups and alert boxes, plus the icons.
 
 - **CSS:** only existing colour values in `main.css` and `bootstrap.min.css` were changed. No rules were added, so the files stay the same size (`bootstrap.min.css` +60 bytes, `main.css` −6 bytes).
 - **Icons:** the Network Map icon sheet `big-icons.png` has a dark palette and is the same size as before (9181 bytes). Active icons are bright, inactive ones are dim. The small menu and button icons use the white icon sheet.
 - **Light bars:** many pages set a light grey background directly on section headers. A few lines in `state.js` darken any such light background automatically, so light text stays readable on every page.
-- **Blue stays blue:** title bars and primary buttons keep their blue colour and white text.
+- **Traffic charts:** the Network Traffic charts (Real Time and Last 24 Hours) use dark panels, dark range buttons and scrollbar, and a purple uplink line (downlink stays orange).
+- **Purple accent:** every blue became purple: title bars, buttons, links, tabs, focus glow, alert boxes, the ON toggle switch, the loading spinner, the logo and the blue Network Map icons. White text on them is unchanged. Only the colours changed, so file sizes are the same.
 - **Browser cache:** the browser keeps CSS and images for about 30 days. After upgrading, press **Ctrl+F5** to see the new theme.
 
 ## Status bar
@@ -124,6 +126,15 @@ The speed comes from the WAN interface counters, so it shows the router's whole 
 ## Network Map
 
 When Speed Control is on, the client list on the Network Map shows a green **VIP** tag or a yellow **LIMIT** tag next to each device that has a Speed Control rule.
+
+## Login page
+
+Opening the router in a browser shows a **login page** (dark purple, with the logo) instead of the browser's pop-up. Type your username and password, and the browser remembers the login for the session, like before.
+
+- **Wrong password:** the page says so and stays open.
+- **Fallback:** the link "Use browser login" on the page opens the old pop-up.
+- **Not a new password system:** the same admin username and password are checked in the same way. Change the default `admin` password.
+- **Logout** works as before and brings you back to the login page.
 
 ## Menu
 
