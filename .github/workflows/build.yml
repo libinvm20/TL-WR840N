@@ -7,7 +7,7 @@ on:
       - '*'
 
 env:
-  SRC_REPO: https://github.com/lucktu/padavan_TW641.git
+  SRC_REPO: https://github.com/TW641/padavan-ng.git
   SRC_COMMIT: 90f694db3b47f2dc9c2f072f1db17bf2b1d8102a
   TOOLCHAIN_URL: https://gitlab.com/api/v4/projects/hadzhioglu%2Fpadavan-ng/packages/generic/toolchain/latest/toolchain.tzst
   PRODUCT_ID: TL_WR845N-V4
