@@ -1003,10 +1003,10 @@ index 61c347d..ca31337 100755
  	$(ROMFSINST) /sbin/automount.sh
 diff --git a/trunk/user/scripts/devusage.sh b/trunk/user/scripts/devusage.sh
 new file mode 100755
-index 0000000..efbb757
+index 0000000..229158b
 --- /dev/null
 +++ b/trunk/user/scripts/devusage.sh
-@@ -0,0 +1,158 @@
+@@ -0,0 +1,183 @@
 +#!/bin/sh
 +#
 +# Device Usage - live internet traffic per device, by Libin
@@ -1034,13 +1034,17 @@ index 0000000..efbb757
 +
 +log() { logger -t "$TAG" "$*"; }
 +
++# uptime in hundredths of a second, without starting another process
++cs() { read up _ < /proc/uptime; f="${up#*.}"; [ "${f%"${f#?}"}" = 0 ] && f="${f#0}"; CS=$(( ${up%.*} * 100 + ${f:-0} )); }
++
 +run_once() {	# $1 = lan ip/prefix, $2 = wan ip, $3 = wan0_uptime stamp
 +	$NICE awk -v lanc="$1" -v wanip="$2" -v wanstamp="$3" -v st="$STATE" -v out="$OUT" -v lan="$LAN" '
 +	function ip2n(ip,   a) { split(ip, a, "."); return ((a[1]*256 + a[2])*256 + a[3])*256 + a[4] }
-+	function inlan(ip) { return int(ip2n(ip) / blk) == int(lann / blk) }
++	function inlan(ip) { if (ip in memo) return memo[ip]; return memo[ip] = (int(ip2n(ip) / blk) == int(lann / blk)) }
 +	BEGIN {
 +		split(lanc, lc, "/"); routerip = lc[1]; plen = lc[2] + 0
-+		blk = 2 ^ (32 - plen); lann = ip2n(routerip)
++		blk = 1; for (i = 0; i < 32 - plen; i++) blk *= 2
++		lann = ip2n(routerip)
 +		if ((getline line < "/proc/uptime") > 0) { split(line, u, " "); now = u[1] + 0 }
 +		close("/proc/uptime")
 +		# previous sample time
@@ -1081,7 +1085,21 @@ index 0000000..efbb757
 +	}
 +	$1 == "ipv4" {
 +		ns = nd = nb = 0; sp = dp = idv = ""
-+		for (i = 4; i <= NF; i++) {
++		# fast path: tcp/udp/icmp lines have a fixed layout (see nf_conntrack_standalone.c)
++		j = ($3 == "tcp" || $3 == "udp") ? 4 : (($3 == "icmp") ? 5 : 0)
++		if (j) {
++			i0 = ($6 ~ /^src=/) ? 6 : 7
++			bi = i0 + j + 1
++			if ($bi !~ /^bytes=/) next
++			i2 = bi + 1
++			if ($i2 == "[UNREPLIED]") i2++
++			bj = i2 + j + 1
++			if ($i2 !~ /^src=/ || $bj !~ /^bytes=/) next
++			s1 = substr($i0, 5); d1 = substr($(i0 + 1), 5); s2 = substr($i2, 5)
++			sp = $(i0 + 2); dp = $(i0 + 3); idv = (j == 5) ? $(i0 + 4) : ""
++			b1 = substr($bi, 7) + 0; b2 = substr($bj, 7) + 0
++			ns = 2; nb = 2
++		} else for (i = 4; i <= NF; i++) {
 +			x = $i
 +			if (x ~ /^src=/) { if (ns == 0) s1 = substr(x, 5); else if (ns == 1) s2 = substr(x, 5); ns++ }
 +			else if (x ~ /^dst=/) { if (nd == 0) d1 = substr(x, 5); nd++ }
@@ -1127,7 +1145,6 @@ index 0000000..efbb757
 +		}
 +		close(tf); close(of)
 +		print now > (st "/ts"); close(st "/ts")
-+		print NR > (st "/n"); close(st "/n")
 +	}' $CT
 +	mv "$STATE/flows.new" "$STATE/flows" 2>/dev/null
 +	mv "$STATE/totals.new" "$STATE/totals" 2>/dev/null
@@ -1156,9 +1173,17 @@ index 0000000..efbb757
 +			rm -f "$OUT" "$STATE"/*
 +			sleep 10; continue
 +		fi
-+		[ -n "$lc" ] && [ -r "$CT" ] && run_once "$lc" "$wanip" "${wanstamp:-0}"
-+		n="$(cat "$STATE/n" 2>/dev/null)"
-+		[ "${n:-0}" -gt 3000 ] && sleep 10 || sleep $POLL
++		w=$POLL
++		if [ -n "$lc" ] && [ -r "$CT" ]; then
++			cs; t0=$CS
++			run_once "$lc" "$wanip" "${wanstamp:-0}"
++			cs
++			# keep the work under about 5 % of the time: sleep at least 19x the run time
++			w=$(( (CS - t0) * 19 / 100 ))
++			[ $w -lt $POLL ] && w=$POLL
++			[ $w -gt 30 ] && w=30
++		fi
++		sleep $w
 +	done
 +	;;
 +*)
@@ -1378,10 +1403,31 @@ index 0000000..44c7f8a
 @@ -0,0 +1 @@
 +<% nvram_dump("devusage.txt",""); %>
 diff --git a/trunk/user/www/n56u_ribbon_fixed/state.js b/trunk/user/www/n56u_ribbon_fixed/state.js
-index 795a2ee..d7e3afd 100755
+index 795a2ee..6490cb8 100755
 --- a/trunk/user/www/n56u_ribbon_fixed/state.js
 +++ b/trunk/user/www/n56u_ribbon_fixed/state.js
-@@ -111,10 +111,10 @@ function get_system_info(){
+@@ -85,6 +85,10 @@ function notify_status_vpn_client(vpnc_state){
+ }
+ 
+ function get_changed_status(){
++	if (document.hidden) {	// background tab: do not bother the router
++		id_check_status = setTimeout("get_changed_status();", 5000);
++		return;
++	}
+ 	var $j = jQuery.noConflict();
+ 	$j.ajax({
+ 		type: 'get',
+@@ -105,16 +109,20 @@ function get_changed_status(){
+ function get_system_info(){
+ 	var $j = jQuery.noConflict();
+ 	clearTimeout(id_system_info);
++	if (document.hidden) {	// background tab: do not bother the router
++		id_system_info = setTimeout('get_system_info()', 3000);
++		return;
++	}
+ 	$j.ajax({
+ 		type: 'get',
+ 		url: '/system_status_data.asp',
  		dataType: 'script',
  		cache: true,
  		error: function(xhr) {
@@ -1394,7 +1440,7 @@ index 795a2ee..d7e3afd 100755
  			setSystemInfo(response);
  		}
  	});
-@@ -229,6 +229,7 @@ var enabledBtnCommit = '<% nvram_match_x("","nvram_manual", "1", "btn-info"); %>
+@@ -229,6 +237,7 @@ var enabledBtnCommit = '<% nvram_match_x("","nvram_manual", "1", "btn-info"); %>
  
  // L3 = The third Level of Menu
  function show_banner(L3){
@@ -1402,7 +1448,7 @@ index 795a2ee..d7e3afd 100755
  	var bc = '';
  	var style_2g = 'width:55px;';
  	var style_5g = 'width:55px;';
-@@ -275,7 +276,7 @@ function show_banner(L3){
+@@ -275,7 +284,7 @@ function show_banner(L3){
  
  	// block system info
  	bc += '<div class="span6">\n';
@@ -1411,7 +1457,7 @@ index 795a2ee..d7e3afd 100755
  	bc += '<div class="row-fluid">\n';
  
  	bc += '<div id="main_info">\n';
-@@ -296,6 +297,10 @@ function show_banner(L3){
+@@ -296,6 +305,10 @@ function show_banner(L3){
  	bc += '    <td><#SI_Uptime#></td>\n';
  	bc += '    <td><span id="uptime_info">&nbsp;</span></td>\n';
  	bc += '  </tr>\n';
@@ -1422,7 +1468,7 @@ index 795a2ee..d7e3afd 100755
  	bc += '</table>\n';
  	bc += '</div>\n';
  
-@@ -347,7 +352,7 @@ function show_banner(L3){
+@@ -347,7 +360,7 @@ function show_banner(L3){
  
  	// block firmware version
  	bc += '<div class="span6">\n';
@@ -1431,7 +1477,7 @@ index 795a2ee..d7e3afd 100755
  	bc += '<div class="row-fluid">\n';
  	bc += '<table class="table table-condensed" style="margin-bottom: 0px">\n';
  	bc += '  <tr>\n';
-@@ -359,6 +364,10 @@ function show_banner(L3){
+@@ -359,6 +372,10 @@ function show_banner(L3){
  	bc += '    <td><div class="form-inline"><input type="button" id="wifi2_b_g" class="btn btn-mini '+enabledGuest2Gclass+'" style="'+style_2g+'" value='+title_2g+' onclick="go_wguest(2);">&nbsp;<input type="button" id="wifi5_b_g" style="'+style_5g+'" class="btn btn-mini '+enabledGuest5Gclass+'" value='+title_5g+' onclick="go_wguest(5);"></div></td>\n';
  	bc += '  </tr>\n';
  	bc += '  <tr>\n';
@@ -1442,7 +1488,7 @@ index 795a2ee..d7e3afd 100755
  	bc += '    <td><#General_x_FirmwareVersion_itemname#></td>\n';
  	bc += '    <td><a href="/Advanced_FirmwareUpgrade_Content.asp"><span id="firmver" class="time"></span></a></td>\n';
  	bc += '  </tr>\n';
-@@ -390,7 +399,7 @@ tabtitle[3] = new Array("", "<#menu5_3_1#>", "<#menu5_3_3#>", "<#menu5_3_4#>", "
+@@ -390,7 +407,7 @@ tabtitle[3] = new Array("", "<#menu5_3_1#>", "<#menu5_3_3#>", "<#menu5_3_4#>", "
  tabtitle[4] = new Array("", "<#menu5_5_1#>", "<#menu5_5_5#>", "<#menu5_5_2#>", "<#menu5_5_3#>", "<#menu5_5_4#>");
  tabtitle[5] = new Array("", "<#menu5_4_3#>", "<#menu5_4_1#>", "<#menu5_4_2#>", "<#menu5_4_4#>", "<#menu5_4_5#>");
  tabtitle[6] = new Array("", "<#menu5_6_2#>", "<#menu5_6_5#>", "<#menu5_6_1#>", "<#menu5_6_3#>", "<#menu5_6_4#>", "<#menu5_6_6#>");
@@ -1451,7 +1497,7 @@ index 795a2ee..d7e3afd 100755
  tabtitle[8] = new Array("", "<#menu5_11#>", "<#menu5_12#>", "WAN", "", "", "", "", "", "", "");
  tabtitle[9] = new Array("", "<#menu5_7_2#>", "<#menu5_7_3#>", "<#menu5_7_5#>", "<#menu5_7_6#>", "<#menu5_7_8#>");
  
-@@ -403,7 +412,7 @@ tablink[3] = new Array("", "Advanced_WAN_Content.asp", "Advanced_IPv6_Content.as
+@@ -403,7 +420,7 @@ tablink[3] = new Array("", "Advanced_WAN_Content.asp", "Advanced_IPv6_Content.as
  tablink[4] = new Array("", "Advanced_BasicFirewall_Content.asp", "Advanced_Netfilter_Content.asp", "Advanced_URLFilter_Content.asp", "Advanced_MACFilter_Content.asp", "Advanced_Firewall_Content.asp");
  tablink[5] = new Array("", "Advanced_AiDisk_others.asp", "Advanced_AiDisk_samba.asp", "Advanced_AiDisk_ftp.asp", "Advanced_Modem_others.asp", "Advanced_Printer_others.asp");
  tablink[6] = new Array("", "Advanced_System_Content.asp", "Advanced_Services_Content.asp", "Advanced_OperationMode_Content.asp", "Advanced_FirmwareUpgrade_Content.asp", "Advanced_SettingBackup_Content.asp", "Advanced_Console_Content.asp");
@@ -1460,7 +1506,7 @@ index 795a2ee..d7e3afd 100755
  tablink[8] = new Array("", "Main_WStatus2g_Content.asp", "Main_WStatus_Content.asp", "", "", "", "", "", "", "", "");
  tablink[9] = new Array("", "Main_LogStatus_Content.asp", "Main_DHCPStatus_Content.asp", "Main_IPTStatus_Content.asp", "Main_RouteStatus_Content.asp", "Main_CTStatus_Content.asp");
  
-@@ -567,12 +576,14 @@ function show_footer(){
+@@ -567,12 +584,14 @@ function show_footer(){
  	footer_code = '<div align="center" class="bottom-image"></div>\n';
  	footer_code +='<div align="center" class="copyright"><#footer_copyright_desc#></div>\n';
  	footer_code +='<div align="center">\n';
@@ -1475,7 +1521,7 @@ index 795a2ee..d7e3afd 100755
  
  	flash_button();
  }
-@@ -647,6 +658,138 @@ function show_loading_obj(){
+@@ -647,6 +666,138 @@ function show_loading_obj(){
  	id_check_status = setTimeout('hideLoading();', 3000);
  }
  
