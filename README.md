@@ -3,13 +3,13 @@
 Custom Padavan firmware for the **TP-Link TL-WR845N v4** (MT7628NN, 4 MB flash, 32 MB RAM), by **Libin**.
 
 - **Smart WAN Watchdog**: the router fixes its own internet drops.
-- **Speed Control**: chosen devices get full speed, everyone else gets the limit you set. Set it from its own web page.
+- **Device Usage**: live download and upload speed and totals for every device, on its own web page.
 - **Dark purple theme**: the whole web UI, including the icons, in dark colours with a purple accent. No extra size.
 - **Login page**: a styled login page instead of the browser pop-up, with the old pop-up kept as a fallback.
 - **Live status bar**: WAN IP, connected time, internet state and live download/upload speed on every page.
 - **Libin branding**: logo, page title, footer, SSH banner, default Wi-Fi name.
 
-Based on [lucktu/padavan_TW641](https://github.com/lucktu/padavan_TW641) (padavan-ng, Linux 3.4), pinned to commit `90f694d`. GPL v2.
+Based on [TW641/padavan-ng](https://github.com/TW641/padavan-ng) (padavan-ng, Linux 3.4), pinned to commit `44e2dab`. GPL v2.
 
 ## Version 2 changes
 
@@ -17,12 +17,10 @@ Based on [lucktu/padavan_TW641](https://github.com/lucktu/padavan_TW641) (padava
 |---|---|---|
 | Smart WAN Watchdog | ✅ | ✅ |
 | Hardware CPU watchdog | ✅ | ✅ |
-| Speed Control (VIP / per-device / shared pool) | ❌ | ✅ web page + commands |
+| Device Usage (live per-device download / upload) | ❌ | ✅ web page |
 | Dark purple theme (pages, buttons, tables, icons, scrollbars) | ❌ | ✅ |
 | Live WAN speed, WAN IP and connected time in the status bar | ❌ | ✅ |
-| VIP / LIMIT tags on the Network Map client list | ❌ | ✅ |
 | VPN Server / VPN Client menu entries | shown | hidden (not used on this router) |
-| Traffic control (`tc`, HTB) | ❌ | ✅ |
 | IPSet | ✅ | ❌ removed to make room |
 | Branding | Padavan | Libin |
 | Default Wi-Fi name | `TL_WR845N-V4_%s` (bug) | `Libin_WiFi` |
@@ -42,66 +40,23 @@ Upgrading from v1 keeps your settings (Wi-Fi, PPPoE, password). Take a **Setting
 Settings are nvram keys, e.g. `nvram set wd_fail_time=300 && nvram commit`:
 `wd_enable`, `wd_fail_time`, `wd_wan_retries`, `wd_wan_wait`, `wd_backoff_base`, `wd_backoff_max`, `wd_stable_time`, `wd_boot_grace`.
 
-## Speed Control
+## Device Usage
 
-Three kinds of device:
+**Advanced Settings → Customization → Device Usage** shows the internet traffic of every device on your network, live:
 
-- **VIP**: full speed, and **priority**. When a VIP device needs bandwidth it gets up to 90 % of your line first.
-- **Custom**: a device with its own download/upload limit.
-- **Others**: everyone else. Two modes:
-  - `each`: every device gets its own limit (e.g. 5 Mbps each, however many connect).
-  - `pool`: all of them **share** one limit (e.g. 10 Mbps together).
+- **Download ↓ and Upload ↑** for each device, updated every 5 seconds, with small bars to compare devices.
+- **Total down and total up** since the router started.
+- Devices are listed with name, IP and MAC. The busiest device is on top.
 
-Devices are matched by **MAC address**, so rules keep working when IPs change. New devices are picked up within about 15 s.
+How it works: a small background program (`devusage`) reads the router's connection table every few seconds and adds up the bytes each device sent and received. Software Offload (SFE) stays **on**, so routing speed is not reduced. Traffic between your own devices (for example a file copy from laptop to PC) is not counted, only internet traffic.
 
-### Web page (easiest)
+Notes:
 
-**Advanced Settings → Customization → Speed Control**
-
-1. **Enable Speed Control?** → Yes
-2. **Your internet plan**: your real ISP speed, download / upload in Mbps.
-3. **All other devices**: choose *Each device gets its own limit* or *All devices share one limit*, and the speed.
-4. **Devices**: every connected device is listed with name, IP and MAC. Set its **Rule** to *Others*, *VIP (full speed)* or *Custom limit* (then type its download/upload). Add a device that is not connected yet with **Add device by MAC**.
-5. Press **Apply**. Rules take effect within about 15 seconds; no reboot needed.
-
-The device list refreshes every 15 s; press **Refresh** to reload it.
-
-### Commands
-
-The same settings can be changed in **Administration → Console** (or SSH). Speeds are in **Mbps** (`5`, `1.5`) or kbps with `k` (`512k`). `0` = unlimited.
-
-```sh
-speedctl list                          # connected devices, MAC, name, current rule
-speedctl line 30 30                    # your real ISP plan: down / up  (do this first)
-speedctl others each 5 1               # every other device: 5 Mbps down / 1 Mbps up each
-speedctl others pool 10 2              # ...or all others share 10 down / 2 up
-speedctl vip add aa:bb:cc:dd:ee:ff     # full speed + priority
-speedctl vip del aa:bb:cc:dd:ee:ff
-speedctl limit aa:bb:cc:dd:ee:ff 2 0.5 # custom: 2 Mbps down / 500 kbps up
-speedctl unlimit aa:bb:cc:dd:ee:ff
-speedctl on                            # enable
-speedctl off                           # disable (everything back to normal)
-speedctl status                        # show settings
-```
-
-Rules are saved and survive reboots. Changes apply immediately.
-
-### First-time setup example
-
-```sh
-speedctl list                              # find your laptop/phone MAC
-speedctl line 30 30                        # plan speed
-speedctl vip add 11:22:33:44:55:66         # your device
-speedctl others each 5 1                   # everyone else
-speedctl on
-```
-
-### Notes
-
-- Set `speedctl line` to your **real** plan speed. Too high and VIP priority gets weaker; too low and everyone is capped below what you pay for.
-- When Speed Control is on, it automatically switches off Software Offload (SFE), which would otherwise skip the limits. Peak routing speed is lower while limits are on; leave Speed Control off if you only want maximum speed.
-- Traffic between devices on your own network (e.g. file copy laptop → PC) is never limited, only internet traffic.
-- Activity is logged under **Administration → System Log** with the tag `speedctl`.
+- It starts about 40 seconds after the router boots, and the numbers begin after the second reading.
+- Connections that were already open when it started are not counted, so totals start from zero.
+- Totals are kept in memory and reset on reboot.
+- To turn it off, run `nvram set du_enable=0 && nvram commit` in **Administration → Console**. Use `du_enable=1` to turn it back on.
+- Cost: it runs every 5 seconds at low priority. If counting takes long (many connections), it automatically waits longer so it uses under about 5 % of the CPU, up to 30 seconds between readings.
 
 ## Dark purple theme
 
@@ -116,16 +71,12 @@ The web UI uses a dark theme everywhere: panels, tables, tabs, menus, buttons, i
 
 ## Status bar
 
-The box at the top of every page has two new rows, refreshed every 3 seconds (paused while the tab is hidden):
+The box at the top of every page has two new rows, refreshed every 5 seconds (paused while the tab is hidden):
 
 - **WAN speed**: current download ↓ and upload ↑ on the internet connection.
 - **Internet**: a dot (green = internet OK, amber = limited, red = down), the WAN IP and how long the connection has been up.
 
-The speed comes from the WAN interface counters, so it shows the router's whole internet traffic, not one device. If it stays at 0 during a download, tell me which build you used.
-
-## Network Map
-
-When Speed Control is on, the client list on the Network Map shows a green **VIP** tag or a yellow **LIMIT** tag next to each device that has a Speed Control rule.
+The speed comes from the WAN interface counters, so it shows the router's whole internet traffic, not one device. While a browser tab is in the background, the page stops polling the router, including the stock status refresh. The status bar and the Device Usage page share one small data file, so the router answers only one extra request every 5 seconds. The router's own status refresh was also slowed from 2 to 3 seconds to lower CPU use.
 
 ## Login page
 
