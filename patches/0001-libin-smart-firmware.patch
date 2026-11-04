@@ -951,6 +951,19 @@ index 0000000..cff3023
 +</form>
 +</body>
 +</html>
+diff --git a/trunk/configs/templates/tplink/tl_wr845n-v4.config b/trunk/configs/templates/tplink/tl_wr845n-v4.config
+index 01026ca..49b9637 100755
+--- a/trunk/configs/templates/tplink/tl_wr845n-v4.config
++++ b/trunk/configs/templates/tplink/tl_wr845n-v4.config
+@@ -58,7 +58,7 @@ CONFIG_FIRMWARE_INCLUDE_SHORTCUT_FE=y
+ #CONFIG_FIRMWARE_INCLUDE_LANG_FR=y
+ #CONFIG_FIRMWARE_INCLUDE_LANG_NO=y
+ #CONFIG_FIRMWARE_INCLUDE_LANG_PL=y
+-CONFIG_FIRMWARE_INCLUDE_LANG_RU=y
++#CONFIG_FIRMWARE_INCLUDE_LANG_RU=y
+ #CONFIG_FIRMWARE_INCLUDE_LANG_SV=y
+ #CONFIG_FIRMWARE_INCLUDE_LANG_UK=y
+ 
 diff --git a/trunk/user/rc/rc.c b/trunk/user/rc/rc.c
 index e625a8d..7e47b3a 100644
 --- a/trunk/user/rc/rc.c
@@ -990,10 +1003,10 @@ index 61c347d..ca31337 100755
  	$(ROMFSINST) /sbin/automount.sh
 diff --git a/trunk/user/scripts/devusage.sh b/trunk/user/scripts/devusage.sh
 new file mode 100755
-index 0000000..fb8344b
+index 0000000..efbb757
 --- /dev/null
 +++ b/trunk/user/scripts/devusage.sh
-@@ -0,0 +1,124 @@
+@@ -0,0 +1,158 @@
 +#!/bin/sh
 +#
 +# Device Usage - live internet traffic per device, by Libin
@@ -1002,8 +1015,9 @@ index 0000000..fb8344b
 +# bytes each LAN device sent (upload) and received (download). Offloaded
 +# (Shortcut-FE) traffic is counted too, so routing speed is not affected.
 +#
-+# Result file for the web page: /tmp/devusage.txt
-+#   ip|mac|name|down_bps|up_bps|down_total_bytes|up_total_bytes
++# Result file for the web pages: /tmp/devusage.txt
++#   first line : #wan|wan_ip|connected_seconds|down_bps|up_bps
++#   then       : ip|mac|name|down_bps|up_bps|down_total_bytes|up_total_bytes
 +#
 +# nvram keys:  du_enable (1 = on, 0 = off)
 +# Totals count from the last boot.
@@ -1014,17 +1028,21 @@ index 0000000..fb8344b
 +PIDFILE=/var/run/devusage.pid
 +LAN=br0
 +CT=/proc/net/nf_conntrack
-+POLL=3
++POLL=5
++NICE=""
++command -v nice >/dev/null 2>&1 && NICE="nice -n 10"
 +
 +log() { logger -t "$TAG" "$*"; }
 +
-+run_once() {	# $1 = lan ip/prefix, $2 = now (uptime seconds)
-+	awk -v lanc="$1" -v now="$2" -v st="$STATE" -v out="$OUT" -v lan="$LAN" '
++run_once() {	# $1 = lan ip/prefix, $2 = wan ip, $3 = wan0_uptime stamp
++	$NICE awk -v lanc="$1" -v wanip="$2" -v wanstamp="$3" -v st="$STATE" -v out="$OUT" -v lan="$LAN" '
 +	function ip2n(ip,   a) { split(ip, a, "."); return ((a[1]*256 + a[2])*256 + a[3])*256 + a[4] }
 +	function inlan(ip) { return int(ip2n(ip) / blk) == int(lann / blk) }
 +	BEGIN {
 +		split(lanc, lc, "/"); routerip = lc[1]; plen = lc[2] + 0
 +		blk = 2 ^ (32 - plen); lann = ip2n(routerip)
++		if ((getline line < "/proc/uptime") > 0) { split(line, u, " "); now = u[1] + 0 }
++		close("/proc/uptime")
 +		# previous sample time
 +		pts = 0; if ((getline line < (st "/ts")) > 0) pts = line + 0; close(st "/ts")
 +		dt = now - pts; seeded = (pts > 0 && dt > 0.5)
@@ -1045,6 +1063,20 @@ index 0000000..fb8344b
 +			if (l[4] != "" && l[4] != "*") nm[l[3]] = l[4]
 +		}
 +		close("/tmp/dnsmasq.leases")
++		# WAN interface (default route) byte counters
++		wif = ""
++		while ((getline line < "/proc/net/route") > 0) { split(line, r, "\t"); if (r[2] == "00000000" && r[1] != "Iface") { wif = r[1]; break } }
++		close("/proc/net/route")
++		wrx = wtx = 0
++		if (wif != "") {
++			if ((getline line < ("/sys/class/net/" wif "/statistics/rx_bytes")) > 0) wrx = line + 0
++			close("/sys/class/net/" wif "/statistics/rx_bytes")
++			if ((getline line < ("/sys/class/net/" wif "/statistics/tx_bytes")) > 0) wtx = line + 0
++			close("/sys/class/net/" wif "/statistics/tx_bytes")
++		}
++		prx = ptx = prd = pru = 0
++		if ((getline line < (st "/wan")) > 0) { split(line, w, " "); prx = w[1] + 0; ptx = w[2] + 0; prd = w[3] + 0; pru = w[4] + 0 }
++		close(st "/wan")
 +		fl = st "/flows.new"; printf "" > fl
 +	}
 +	$1 == "ipv4" {
@@ -1073,6 +1105,14 @@ index 0000000..fb8344b
 +	END {
 +		close(fl)
 +		tf = st "/totals.new"; of = out ".tmp"; printf "" > tf; printf "" > of
++		wd = prd; wu = pru
++		if (seeded && prx > 0 && wrx >= prx && wtx >= ptx) {
++			wd = (prd + (wrx - prx) * 8 / dt) / 2; wu = (pru + (wtx - ptx) * 8 / dt) / 2
++			if (wd < 500) wd = 0
++			if (wu < 500) wu = 0
++		}
++		printf "%s %.0f %.0f %.0f %.0f\n", "", wrx, wtx, wd, wu > (st "/wan"); close(st "/wan")
++		printf "#wan|%s|%.0f|%.0f|%.0f\n", wanip, (wanstamp > 0 && now > wanstamp) ? now - wanstamp : 0, wd, wu >> of
 +		for (ip in known) {
 +			if (seeded) {
 +				ir = gu[ip] * 8 / dt; id = gd[ip] * 8 / dt
@@ -1087,6 +1127,7 @@ index 0000000..fb8344b
 +		}
 +		close(tf); close(of)
 +		print now > (st "/ts"); close(st "/ts")
++		print NR > (st "/n"); close(st "/n")
 +	}' $CT
 +	mv "$STATE/flows.new" "$STATE/flows" 2>/dev/null
 +	mv "$STATE/totals.new" "$STATE/totals" 2>/dev/null
@@ -1099,19 +1140,25 @@ index 0000000..fb8344b
 +	echo $$ > "$PIDFILE"
 +	mkdir -p "$STATE"; rm -f "$STATE"/*
 +	sleep 40
++	c=0; en=1; lc=""; wanip=""; wanstamp=0
 +	while :; do
-+		if [ "$(nvram get du_enable)" = "0" ]; then
++		if [ $((c % 6)) -eq 0 ]; then	# slow-changing values, refreshed about every 30 s
++			en="$(nvram get du_enable)"
++			lc="$(ip -4 addr show dev $LAN 2>/dev/null | awk '/inet /{print $2; exit}')"
++			wanstamp="$(nvram get wan0_uptime)"
++			wif="$(awk '$2=="00000000" && $1!="Iface"{print $1; exit}' /proc/net/route 2>/dev/null)"
++			wanip=""
++			[ -n "$wif" ] && wanip="$(ip -4 addr show dev "$wif" 2>/dev/null | awk '/inet /{split($2,a,"/"); print a[1]; exit}')"
++			[ "$(cat /proc/sys/net/netfilter/nf_conntrack_acct 2>/dev/null)" = "1" ] || echo 1 > /proc/sys/net/netfilter/nf_conntrack_acct 2>/dev/null
++		fi
++		c=$((c + 1))
++		if [ "$en" = "0" ]; then
 +			rm -f "$OUT" "$STATE"/*
 +			sleep 10; continue
 +		fi
-+		[ "$(cat /proc/sys/net/netfilter/nf_conntrack_acct 2>/dev/null)" = "1" ] || echo 1 > /proc/sys/net/netfilter/nf_conntrack_acct 2>/dev/null
-+		lc="$(ip -4 addr show dev $LAN 2>/dev/null | awk '/inet /{print $2; exit}')"
-+		if [ -n "$lc" ] && [ -r "$CT" ]; then
-+			run_once "$lc" "$(cut -d' ' -f1 /proc/uptime)"
-+			n="$(wc -l < "$CT")"
-+			[ "${n:-0}" -gt 3000 ] && { sleep 6; continue; }
-+		fi
-+		sleep $POLL
++		[ -n "$lc" ] && [ -r "$CT" ] && run_once "$lc" "$wanip" "${wanstamp:-0}"
++		n="$(cat "$STATE/n" 2>/dev/null)"
++		[ "${n:-0}" -gt 3000 ] && sleep 10 || sleep $POLL
 +	done
 +	;;
 +*)
@@ -1166,10 +1213,10 @@ index d334383..fca6320 100755
 +menu5_10_4=Device Usage
 diff --git a/trunk/user/www/n56u_ribbon_fixed/Advanced_DeviceUsage_Content.asp b/trunk/user/www/n56u_ribbon_fixed/Advanced_DeviceUsage_Content.asp
 new file mode 100644
-index 0000000..3fb0d5c
+index 0000000..18e4830
 --- /dev/null
 +++ b/trunk/user/www/n56u_ribbon_fixed/Advanced_DeviceUsage_Content.asp
-@@ -0,0 +1,169 @@
+@@ -0,0 +1,153 @@
 +<!DOCTYPE html>
 +<html>
 +<head>
@@ -1241,28 +1288,12 @@ index 0000000..3fb0d5c
 +	document.getElementById('du_rows').innerHTML = h;
 +}
 +
-+function poll(){
-+	var $j = jQuery.noConflict();
-+	if (document.hidden) {
-+		setTimeout(poll, 3000);
-+		return;
-+	}
-+	$j.ajax({
-+		type: 'get',
-+		url: '/device_usage_data.asp',
-+		dataType: 'text',
-+		cache: true,
-+		success: show_usage,
-+		complete: function(){ setTimeout(poll, 3000); }
-+	});
-+}
-+
 +function initial(){
 +	show_banner(1);
 +	show_menu(5,8,4);
 +	show_footer();
 +	load_body();
-+	poll();
++	du_subscribe(show_usage);
 +}
 +</script>
 +</head>
@@ -1311,7 +1342,7 @@ index 0000000..3fb0d5c
 +                            <div class="round_bottom">
 +                                <div class="row-fluid">
 +                                    <div id="tabMenu" class="submenuBlock"></div>
-+                                    <div class="alert alert-info" style="margin: 10px;">Live internet traffic of every device on your network, updated every 3 seconds. Download is traffic the device receives, upload is traffic it sends. Totals count since the router started.</div>
++                                    <div class="alert alert-info" style="margin: 10px;">Live internet traffic of every device on your network, updated every 5 seconds. Download is traffic the device receives, upload is traffic it sends. Totals count since the router started.</div>
 +
 +                                    <table width="100%" cellpadding="4" cellspacing="0" class="table">
 +                                        <tr>
@@ -1347,9 +1378,22 @@ index 0000000..44c7f8a
 @@ -0,0 +1 @@
 +<% nvram_dump("devusage.txt",""); %>
 diff --git a/trunk/user/www/n56u_ribbon_fixed/state.js b/trunk/user/www/n56u_ribbon_fixed/state.js
-index 795a2ee..b14827e 100755
+index 795a2ee..d7e3afd 100755
 --- a/trunk/user/www/n56u_ribbon_fixed/state.js
 +++ b/trunk/user/www/n56u_ribbon_fixed/state.js
+@@ -111,10 +111,10 @@ function get_system_info(){
+ 		dataType: 'script',
+ 		cache: true,
+ 		error: function(xhr) {
+-			id_system_info = setTimeout('get_system_info()', 2000);
++			id_system_info = setTimeout('get_system_info()', 3000);
+ 		},
+ 		success: function(response) {
+-			id_system_info = setTimeout('get_system_info()', 2000);
++			id_system_info = setTimeout('get_system_info()', 3000);
+ 			setSystemInfo(response);
+ 		}
+ 	});
 @@ -229,6 +229,7 @@ var enabledBtnCommit = '<% nvram_match_x("","nvram_manual", "1", "btn-info"); %>
  
  // L3 = The third Level of Menu
@@ -1431,7 +1475,7 @@ index 795a2ee..b14827e 100755
  
  	flash_button();
  }
-@@ -647,6 +658,123 @@ function show_loading_obj(){
+@@ -647,6 +658,138 @@ function show_loading_obj(){
  	id_check_status = setTimeout('hideLoading();', 3000);
  }
  
@@ -1454,8 +1498,10 @@ index 795a2ee..b14827e 100755
 + + ' .box_head { font-size: 15px; }'
 + + '}';
 +
-+// Live WAN info for the status bar: IP, connected time, current speed.
-+var wan_prev = null, wan_live_on = 0;
++// Live WAN info for the status bar. One shared request to /device_usage_data.asp
++// (a small file written every few seconds by /usr/bin/devusage) feeds both the
++// status bar and the Device Usage page, so the router only answers one request.
++var du_subs = [], du_last = '', du_on = 0, wan_live_on = 0;
 +
 +function wan_fmt_rate(bps){
 +	if (bps >= 1000000) return (bps / 1000000).toFixed(1) + ' Mbps';
@@ -1468,39 +1514,52 @@ index 795a2ee..b14827e 100755
 +	return d ? d + 'd ' + h + 'h' : (h ? h + 'h ' + m + 'm' : m + 'm');
 +}
 +
-+function wan_live_show(){
-+	var $j = jQuery.noConflict(), ip = wanlink_ip4_wan(), c = '#d9534f', txt;
-+	if (new_wan_internet == '1') c = '#5cb85c';
-+	else if (new_wan_internet == '2') c = '#f0ad4e';
-+	txt = '<span style="color:' + c + ';">&#9679;</span> ';
-+	txt += (ip && ip != '---') ? ip + ' &middot; ' + wan_fmt_time(wanlink_uptime()) : 'not connected';
-+	$j('#wan_ip_info').html(txt);
-+
-+	var now = new Date().getTime(), rx = wanlink_bytes_rx(), tx = wanlink_bytes_tx(), s = ' -- ';
-+	if (wan_prev && now > wan_prev.t && rx >= wan_prev.rx && tx >= wan_prev.tx) {
-+		var dt = (now - wan_prev.t) / 1000;
-+		s = '&darr; ' + wan_fmt_rate((rx - wan_prev.rx) * 8 / dt) + ' &nbsp;&uarr; ' + wan_fmt_rate((tx - wan_prev.tx) * 8 / dt);
-+	}
-+	wan_prev = {t: now, rx: rx, tx: tx};
-+	$j('#wan_speed').html(s);
-+}
-+
-+function wan_live(){
++function du_poll(){
 +	var $j = jQuery.noConflict();
-+	if (!document.getElementById('wan_speed'))
-+		return;
 +	if (document.hidden) {
-+		setTimeout(wan_live, 3000);
++		setTimeout(du_poll, 5000);
 +		return;
 +	}
 +	$j.ajax({
 +		type: 'get',
-+		url: '/status_wanlink.asp',
-+		dataType: 'script',
++		url: '/device_usage_data.asp',
++		dataType: 'text',
 +		cache: true,
-+		success: function(){ wan_live_show(); },
-+		complete: function(){ setTimeout(wan_live, 3000); }
++		success: function(r){
++			du_last = r;
++			for (var i = 0; i < du_subs.length; i++)
++				du_subs[i](r);
++		},
++		complete: function(){ setTimeout(du_poll, 5000); }
 +	});
++}
++
++function du_subscribe(fn){
++	du_subs.push(fn);
++	if (du_last)
++		fn(du_last);
++	if (!du_on) {
++		du_on = 1;
++		du_poll();
++	}
++}
++
++function wan_live_show(text){
++	var $j = jQuery.noConflict(), L = text.split('\n'), p = null, i, c = '#d9534f', txt;
++	for (i = 0; i < L.length; i++) {
++		if (L[i].charAt(0) == '#') {
++			p = L[i].split('|');
++			break;
++		}
++	}
++	if (!p || p.length < 5)
++		return;
++	if (new_wan_internet == '1') c = '#5cb85c';
++	else if (new_wan_internet == '2') c = '#f0ad4e';
++	txt = '<span style="color:' + c + ';">&#9679;</span> ';
++	txt += p[1] ? p[1] + ' &middot; ' + wan_fmt_time(+p[2]) : 'not connected';
++	$j('#wan_ip_info').html(txt);
++	$j('#wan_speed').html('&darr; ' + wan_fmt_rate(+p[3]) + ' &nbsp;&uarr; ' + wan_fmt_rate(+p[4]));
 +}
 +
 +function apply_branding(){
@@ -1519,7 +1578,7 @@ index 795a2ee..b14827e 100755
 +	}
 +	if (!wan_live_on && d.getElementById('wan_speed')) {
 +		wan_live_on = 1;
-+		wan_live();
++		du_subscribe(wan_live_show);
 +	}
 +	var lg = d.getElementById('logo');
 +	if (lg)
@@ -1555,16 +1614,3 @@ index 795a2ee..b14827e 100755
  function submit_language(){
  	if($("select_lang").value != $("preferred_lang").value){
  		showLoading();
-diff --git a/trunk/configs/templates/tplink/tl_wr845n-v4.config b/trunk/configs/templates/tplink/tl_wr845n-v4.config
-index 01026ca..49b9637 100755
---- a/trunk/configs/templates/tplink/tl_wr845n-v4.config
-+++ b/trunk/configs/templates/tplink/tl_wr845n-v4.config
-@@ -58,7 +58,7 @@ CONFIG_FIRMWARE_INCLUDE_SHORTCUT_FE=y
- #CONFIG_FIRMWARE_INCLUDE_LANG_FR=y
- #CONFIG_FIRMWARE_INCLUDE_LANG_NO=y
- #CONFIG_FIRMWARE_INCLUDE_LANG_PL=y
--CONFIG_FIRMWARE_INCLUDE_LANG_RU=y
-+#CONFIG_FIRMWARE_INCLUDE_LANG_RU=y
- #CONFIG_FIRMWARE_INCLUDE_LANG_SV=y
- #CONFIG_FIRMWARE_INCLUDE_LANG_UK=y
- 
