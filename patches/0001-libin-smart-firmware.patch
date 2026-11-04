@@ -1660,3 +1660,71 @@ index 795a2ee..6490cb8 100755
  function submit_language(){
  	if($("select_lang").value != $("preferred_lang").value){
  		showLoading();
+
+diff --git a/trunk/user/www/n56u_ribbon_fixed/index.asp b/trunk/user/www/n56u_ribbon_fixed/index.asp
+--- a/trunk/user/www/n56u_ribbon_fixed/index.asp
++++ b/trunk/user/www/n56u_ribbon_fixed/index.asp
+@@ -14,6 +14,7 @@
+ <script type="text/javascript" src="/jquery.js"></script>
+ <script type="text/javascript" src="/bootstrap/js/bootstrap.min.js"></script>
+ <script type="text/javascript" src="/state.js"></script>
++<script type="text/javascript" src="/qrcode.min.js"></script>
+ <script type="text/javascript" src="/popup.js"></script>
+ <script type="text/javascript" src="/disk_functions.js"></script>
+ <script type="text/javascript" src="/client_function.js"></script>
+@@ -45,6 +46,7 @@ function initial(){
+ 	show_middle_status();
+ 	show_client_status(ccount);
+ 	set_default_choice();
++	makeWifiQR();
+ 
+ 	if (!support_2g_radio() && !support_5g_radio()) { // Remove radio row
+ 		$("row_radio").style.display = "none";
+@@ -150,6 +152,32 @@ function show_middle_status(){
+ 		$j("#wl_securitylevel_span").html('<i class="icon-lock icon-white"></i>');
+ 	}
+ }
++
++/* Wi-Fi QR code – scan to join (reuses existing qrcode.min.js from VPN pages) */
++function makeWifiQR() {
++	var ssid = '<% nvram_get_x("", "wl_ssid"); %>';
++	var pass = '<% nvram_get_x("", "wl_wpa_psk"); %>';
++	if (!ssid) return;
++
++	function esc(s) {
++		return String(s).replace(/([\\;,:"])/g, '\\$1');
++	}
++
++	// Standard WIFI: URI (iOS + Android camera)
++	var payload = 'WIFI:T:WPA;S:' + esc(ssid) + ';P:' + esc(pass) + ';;';
++
++	var el = document.getElementById('wifi_qr');
++	if (!el) return;
++	el.innerHTML = '';
++	new QRCode(el, {
++		text: payload,
++		width: 120,
++		height: 120,
++		colorDark: '#000000',
++		colorLight: '#ffffff',
++		correctLevel: QRCode.CorrectLevel.M
++	});
++}
+ 
+ function show_client_status(clients_count){
+ 	var client_str = "";
+@@ -760,6 +788,15 @@ function mouseEvent(obj, key){
+                                 </tbody>
+                             </table>
+ 
++                            <!-- Wi-Fi QR (scan to join) -->
++                            <div id="wifi_qr_box" style="text-align:center; margin:14px 0 6px;">
++                                <div style="font-size:11px; opacity:0.85; margin-bottom:4px;">
++                                    Scan to join Wi-Fi
++                                </div>
++                                <div id="wifi_qr" style="display:inline-block;"></div>
++                            </div>
++
+                             <div class="row-fluid">
+                                 <div class="span12">
+                                     <div id="statusContainer" width="0" height="0" align="left" valign="top" ></div>
