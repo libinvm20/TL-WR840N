@@ -1679,7 +1679,7 @@ index 245d70b..ae1562f 100644
  	{ "front_led_wan", "2" },
  #if defined (BOARD_GPIO_LED_WAN) && defined (BOARD_GPIO_LED_WAN_PHY)
 diff --git a/trunk/user/www/n56u_ribbon_fixed/index.asp b/trunk/user/www/n56u_ribbon_fixed/index.asp
-index f0241f1..ba53b0e 100755
+index f0241f1..5e4b6f8 100755
 --- a/trunk/user/www/n56u_ribbon_fixed/index.asp
 +++ b/trunk/user/www/n56u_ribbon_fixed/index.asp
 @@ -14,6 +14,7 @@
@@ -1698,37 +1698,80 @@ index f0241f1..ba53b0e 100755
  
  	if (!support_2g_radio() && !support_5g_radio()) { // Remove radio row
  		$("row_radio").style.display = "none";
-@@ -151,6 +153,53 @@ function show_middle_status(){
+@@ -151,6 +153,96 @@ function show_middle_status(){
  	}
  }
  
 +/* Wi-Fi QR code: scan with a phone camera to join. Uses the 2.4GHz settings (rt_*). */
-+function wifiQRText(){
++function ascii2str(v){	// undo the router's %XX encoding (bytes above 0x7F arrive as %FFFFFFxx)
++	var b = [], i, m;
++	for (i = 0; i < v.length; i++) {
++		if (v.charAt(i) == '%') {
++			m = v.substr(i).match(/^%(?:FFFFFF)?([0-9A-Fa-f]{2})/);
++			if (m) {
++				b.push(parseInt(m[1], 16));
++				i += m[0].length - 1;
++				continue;
++			}
++		}
++		b.push(v.charCodeAt(i));
++	}
++	try {
++		return new TextDecoder('utf-8').decode(new Uint8Array(b));
++	} catch (e) {
++		return String.fromCharCode.apply(null, b);
++	}
++}
++
++function wifiQRInfo(){	// {t: text for the QR code, why: reason when there is none}
 +	var am = document.form.rt_auth_mode.value, wep = parseInt(document.form.rt_wep_x.value) || 0, ssid, pass, hid;
 +	try {
-+		ssid = decodeURIComponent(document.getElementById('qr_ssid').value);
-+		pass = decodeURIComponent(document.getElementById('qr_psk').value);
++		ssid = ascii2str(document.getElementById('qr_ssid').value);
++		pass = ascii2str(document.getElementById('qr_psk').value);
 +	} catch (e) {
-+		return '';
++		return {t: '', why: 'cannot read Wi-Fi name or password'};
 +	}
 +	hid = (document.getElementById('qr_closed').value == '1') ? 'H:true;' : '';
 +	function esc(v){ return v.replace(/([\\;,:"])/g, '\\$1'); }
 +	if (!ssid)
-+		return '';
++		return {t: '', why: 'no Wi-Fi name set'};
 +	if (am == 'open' && wep == 0)
-+		return 'WIFI:T:nopass;S:' + esc(ssid) + ';' + hid + ';';
-+	if (am == 'psk' && pass)
-+		return 'WIFI:T:WPA;S:' + esc(ssid) + ';P:' + esc(pass) + ';' + hid + ';';
-+	return '';
++		return {t: 'WIFI:T:nopass;S:' + esc(ssid) + ';' + hid + ';', why: ''};
++	if (am == 'psk') {
++		if (!pass)
++			return {t: '', why: 'no Wi-Fi password set'};
++		return {t: 'WIFI:T:WPA;S:' + esc(ssid) + ';P:' + esc(pass) + ';' + hid + ';', why: ''};
++	}
++	return {t: '', why: 'this security type has no QR code'};
++}
++
++function wifiQRText(){
++	return wifiQRInfo().t;
 +}
 +
 +function makeWifiQR(){
-+	var box = document.getElementById('wifi_qr_box'), el = document.getElementById('wifi_qr'), t = wifiQRText();
-+	if (!box || !el || !t)
++	var box = document.getElementById('wifi_qr_box'), el = document.getElementById('wifi_qr'),
++	    note = document.getElementById('wifi_qr_note'), info = wifiQRInfo();
++	if (!box || !el || !note)
 +		return;
-+	el.innerHTML = '';
-+	new QRCode(el, {text: t, width: 96, height: 96, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M});
 +	box.style.display = 'block';
++	el.style.display = 'none';
++	if (!info.t) {
++		note.textContent = 'No QR code: ' + info.why;
++		return;
++	}
++	if (typeof QRCode == 'undefined') {
++		note.textContent = 'No QR code: QR script did not load';
++		return;
++	}
++	try {
++		el.innerHTML = '';
++		new QRCode(el, {text: info.t, width: 96, height: 96, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M});
++		el.style.display = 'inline-block';
++		note.textContent = 'Scan to join Wi-Fi';
++	} catch (e) {
++		note.textContent = 'No QR code: ' + e.message;
++	}
 +}
 +
 +function bigWifiQR(){
@@ -1752,7 +1795,7 @@ index f0241f1..ba53b0e 100755
  function show_client_status(clients_count){
  	var client_str = "";
  	var wired_num = 0, wireless_num = 0;
-@@ -767,6 +816,14 @@ $j(document).ready(function(){
+@@ -767,6 +859,14 @@ $j(document).ready(function(){
                                  </tbody>
                              </table>
  
@@ -1760,8 +1803,8 @@ index f0241f1..ba53b0e 100755
 +                                <input type="hidden" id="qr_ssid" value="<% nvram_char_to_ascii("", "rt_ssid"); %>">
 +                                <input type="hidden" id="qr_psk" value="<% nvram_char_to_ascii("", "rt_wpa_psk"); %>">
 +                                <input type="hidden" id="qr_closed" value="<% nvram_get_x("", "rt_closed"); %>">
-+                                <div id="wifi_qr" title="Click to enlarge" style="display:inline-block; background:#fff; padding:4px; border-radius:4px; cursor:pointer;" onclick="bigWifiQR();"></div>
-+                                <div style="font-size:11px; color:#aaa; margin-top:3px;">Scan to join Wi-Fi</div>
++                                <div id="wifi_qr" title="Click to enlarge" style="display:none; background:#fff; padding:4px; border-radius:4px; cursor:pointer;" onclick="bigWifiQR();"></div>
++                                <div id="wifi_qr_note" style="font-size:11px; color:#aaa; margin-top:3px;">Scan to join Wi-Fi</div>
 +                            </div>
 +
                              <div class="row-fluid">
