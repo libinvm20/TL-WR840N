@@ -1190,43 +1190,6 @@ index 0000000..229158b
 +	[ -r "$OUT" ] && cat "$OUT" || echo "no data yet (Device Usage starts about 40 s after boot)"
 +	;;
 +esac
-diff --git a/trunk/user/shared/defaults.c b/trunk/user/shared/defaults.c
-index 245d70b..6b6add4 100644
---- a/trunk/user/shared/defaults.c
-+++ b/trunk/user/shared/defaults.c
-@@ -589,7 +589,22 @@ struct nvram_pair router_defaults[] = {
- 	{ "controlrate_multicast", "0" },
- 	{ "controlrate_broadcast", "10" },
- 
--	{ "di_poll_mode", "0" },
-+	{ "di_poll_mode", "1" },
-+
-+	/* Smart WAN Watchdog (/usr/bin/wan_watchdog.sh) */
-+	{ "wd_enable", "1" },
-+	{ "wd_fail_time", "180" },
-+	{ "wd_wan_retries", "2" },
-+	{ "wd_wan_wait", "90" },
-+	{ "wd_backoff_base", "300" },
-+	{ "wd_backoff_max", "1800" },
-+	{ "wd_stable_time", "600" },
-+	{ "wd_boot_grace", "120" },
-+	{ "wd_reboots", "0" },
-+
-+	/* Device Usage (/usr/bin/devusage) */
-+	{ "du_enable", "1" },
-+
- 	{ "di_timeout", "3" },
- 	{ "di_time_done", "55" },
- 	{ "di_time_fail", "5" },
-@@ -696,7 +711,7 @@ struct nvram_pair router_defaults[] = {
- 	{ "fn2_action_short", "0" },
- 	{ "fn2_action_long", "0" },
- #endif
--	{ "watchdog_cpu", "0" },
-+	{ "watchdog_cpu", "1" },
- 	{ "front_led_all", "1" },
- 	{ "front_led_wan", "2" },
- #if defined (BOARD_GPIO_LED_WAN) && defined (BOARD_GPIO_LED_WAN_PHY)
 diff --git a/trunk/user/www/dict/EN.footer b/trunk/user/www/dict/EN.footer
 index d334383..fca6320 100755
 --- a/trunk/user/www/dict/EN.footer
@@ -1660,8 +1623,63 @@ index 795a2ee..6490cb8 100755
  function submit_language(){
  	if($("select_lang").value != $("preferred_lang").value){
  		showLoading();
-
+diff --git a/trunk/user/shared/defaults.c b/trunk/user/shared/defaults.c
+index 245d70b..ae1562f 100644
+--- a/trunk/user/shared/defaults.c
++++ b/trunk/user/shared/defaults.c
+@@ -57,7 +57,7 @@ struct nvram_pair router_defaults[] = {
+ 	{ "lan_dns_x", "1" },			/* LAN DNS [static|dhcp] */
+ 	{ "lan_dns1", "" },			/* LAN DNS1 */
+ 	{ "lan_dns2", "" },			/* LAN DNS2 */
+-	{ "lan_domain", "" },			/* LAN domain name */
++	{ "lan_domain", "lan" },		/* LAN domain name (router is libin.lan) */
+ 	{ "lan_stp", "1" },			/* LAN spanning tree protocol */
+ 
+ 	/* WAN H/W parameters */
+@@ -383,7 +383,7 @@ struct nvram_pair router_defaults[] = {
+ 	{ "st_max_user", "10" },
+ 	{ "apps_dms", "0" },
+ 	{ "sh_num", "0" },
+-	{ "computer_name", BOARD_NAME },
++	{ "computer_name", "libin" },		/* host name: http://libin.lan */
+ 	{ "pcache_reclaim", "2" },
+ 	{ "usb3_disable", "0" },
+ 	{ "u2ec_enable", "1" },
+@@ -589,7 +589,22 @@ struct nvram_pair router_defaults[] = {
+ 	{ "controlrate_multicast", "0" },
+ 	{ "controlrate_broadcast", "10" },
+ 
+-	{ "di_poll_mode", "0" },
++	{ "di_poll_mode", "1" },
++
++	/* Smart WAN Watchdog (/usr/bin/wan_watchdog.sh) */
++	{ "wd_enable", "1" },
++	{ "wd_fail_time", "180" },
++	{ "wd_wan_retries", "2" },
++	{ "wd_wan_wait", "90" },
++	{ "wd_backoff_base", "300" },
++	{ "wd_backoff_max", "1800" },
++	{ "wd_stable_time", "600" },
++	{ "wd_boot_grace", "120" },
++	{ "wd_reboots", "0" },
++
++	/* Device Usage (/usr/bin/devusage) */
++	{ "du_enable", "1" },
++
+ 	{ "di_timeout", "3" },
+ 	{ "di_time_done", "55" },
+ 	{ "di_time_fail", "5" },
+@@ -696,7 +711,7 @@ struct nvram_pair router_defaults[] = {
+ 	{ "fn2_action_short", "0" },
+ 	{ "fn2_action_long", "0" },
+ #endif
+-	{ "watchdog_cpu", "0" },
++	{ "watchdog_cpu", "1" },
+ 	{ "front_led_all", "1" },
+ 	{ "front_led_wan", "2" },
+ #if defined (BOARD_GPIO_LED_WAN) && defined (BOARD_GPIO_LED_WAN_PHY)
 diff --git a/trunk/user/www/n56u_ribbon_fixed/index.asp b/trunk/user/www/n56u_ribbon_fixed/index.asp
+index f0241f1..ba53b0e 100755
 --- a/trunk/user/www/n56u_ribbon_fixed/index.asp
 +++ b/trunk/user/www/n56u_ribbon_fixed/index.asp
 @@ -14,6 +14,7 @@
@@ -1672,7 +1690,7 @@ diff --git a/trunk/user/www/n56u_ribbon_fixed/index.asp b/trunk/user/www/n56u_ri
  <script type="text/javascript" src="/popup.js"></script>
  <script type="text/javascript" src="/disk_functions.js"></script>
  <script type="text/javascript" src="/client_function.js"></script>
-@@ -45,6 +46,7 @@ function initial(){
+@@ -43,6 +44,7 @@ function initial(){
  	show_middle_status();
  	show_client_status(ccount);
  	set_default_choice();
@@ -1680,73 +1698,72 @@ diff --git a/trunk/user/www/n56u_ribbon_fixed/index.asp b/trunk/user/www/n56u_ri
  
  	if (!support_2g_radio() && !support_5g_radio()) { // Remove radio row
  		$("row_radio").style.display = "none";
-@@ -150,6 +152,32 @@ function show_middle_status(){
- 		$j("#wl_securitylevel_span").html('<i class="icon-lock icon-white"></i>');
+@@ -151,6 +153,53 @@ function show_middle_status(){
  	}
  }
-+
-+/* Wi-Fi QR code – scan to join (reuses existing qrcode.min.js from VPN pages) */
-+function makeWifiQR() {
-+	var ssid = '<% nvram_get_x("", "wl_ssid"); %>';
-+	var pass = '<% nvram_get_x("", "wl_wpa_psk"); %>';
-+	if (!ssid) return;
-+
-+	function esc(s) {
-+		return String(s).replace(/([\\;,:"])/g, '\\$1');
-+	}
-+
-+	// Standard WIFI: URI (iOS + Android camera)
-+	var payload = 'WIFI:T:WPA;S:' + esc(ssid) + ';P:' + esc(pass) + ';;';
-+
-+	var el = document.getElementById('wifi_qr');
-+	if (!el) return;
-+	el.innerHTML = '';
-+	new QRCode(el, {
-+		text: payload,
-+		width: 120,
-+		height: 120,
-+		colorDark: '#000000',
-+		colorLight: '#ffffff',
-+		correctLevel: QRCode.CorrectLevel.M
-+	});
-+}
  
++/* Wi-Fi QR code: scan with a phone camera to join. Uses the 2.4GHz settings (rt_*). */
++function wifiQRText(){
++	var am = document.form.rt_auth_mode.value, wep = parseInt(document.form.rt_wep_x.value) || 0, ssid, pass, hid;
++	try {
++		ssid = decodeURIComponent(document.getElementById('qr_ssid').value);
++		pass = decodeURIComponent(document.getElementById('qr_psk').value);
++	} catch (e) {
++		return '';
++	}
++	hid = (document.getElementById('qr_closed').value == '1') ? 'H:true;' : '';
++	function esc(v){ return v.replace(/([\\;,:"])/g, '\\$1'); }
++	if (!ssid)
++		return '';
++	if (am == 'open' && wep == 0)
++		return 'WIFI:T:nopass;S:' + esc(ssid) + ';' + hid + ';';
++	if (am == 'psk' && pass)
++		return 'WIFI:T:WPA;S:' + esc(ssid) + ';P:' + esc(pass) + ';' + hid + ';';
++	return '';
++}
++
++function makeWifiQR(){
++	var box = document.getElementById('wifi_qr_box'), el = document.getElementById('wifi_qr'), t = wifiQRText();
++	if (!box || !el || !t)
++		return;
++	el.innerHTML = '';
++	new QRCode(el, {text: t, width: 96, height: 96, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M});
++	box.style.display = 'block';
++}
++
++function bigWifiQR(){
++	var t = wifiQRText(), o, q, c;
++	if (!t)
++		return;
++	o = document.createElement('div');
++	o.style.cssText = 'position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,.8);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;cursor:pointer;';
++	q = document.createElement('div');
++	q.style.cssText = 'background:#fff;padding:12px;border-radius:6px;';
++	c = document.createElement('div');
++	c.style.cssText = 'color:#ddd;margin-top:10px;font-size:13px;';
++	c.textContent = 'Scan to join Wi-Fi. Click anywhere to close.';
++	o.appendChild(q);
++	o.appendChild(c);
++	o.onclick = function(){ document.body.removeChild(o); };
++	document.body.appendChild(o);
++	new QRCode(q, {text: t, width: 256, height: 256, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M});
++}
++
  function show_client_status(clients_count){
  	var client_str = "";
-@@ -760,6 +788,15 @@ function mouseEvent(obj, key){
+ 	var wired_num = 0, wireless_num = 0;
+@@ -767,6 +816,14 @@ $j(document).ready(function(){
                                  </tbody>
                              </table>
  
-+                            <!-- Wi-Fi QR (scan to join) -->
-+                            <div id="wifi_qr_box" style="text-align:center; margin:14px 0 6px;">
-+                                <div style="font-size:11px; opacity:0.85; margin-bottom:4px;">
-+                                    Scan to join Wi-Fi
-+                                </div>
-+                                <div id="wifi_qr" style="display:inline-block;"></div>
++                            <div id="wifi_qr_box" style="display:none; text-align:center; margin:12px 0 4px;">
++                                <input type="hidden" id="qr_ssid" value="<% nvram_char_to_ascii("", "rt_ssid"); %>">
++                                <input type="hidden" id="qr_psk" value="<% nvram_char_to_ascii("", "rt_wpa_psk"); %>">
++                                <input type="hidden" id="qr_closed" value="<% nvram_get_x("", "rt_closed"); %>">
++                                <div id="wifi_qr" title="Click to enlarge" style="display:inline-block; background:#fff; padding:4px; border-radius:4px; cursor:pointer;" onclick="bigWifiQR();"></div>
++                                <div style="font-size:11px; color:#aaa; margin-top:3px;">Scan to join Wi-Fi</div>
 +                            </div>
 +
                              <div class="row-fluid">
                                  <div class="span12">
                                      <div id="statusContainer" width="0" height="0" align="left" valign="top" ></div>
-
-diff --git a/trunk/user/shared/defaults.c b/trunk/user/shared/defaults.c
---- a/trunk/user/shared/defaults.c
-+++ b/trunk/user/shared/defaults.c
-@@ -57,7 +57,7 @@ struct nvram_pair router_defaults[] = {
- 	{ "lan_dns_x", "1" },			/* LAN DNS [static|dhcp] */
- 	{ "lan_dns1", "" },			/* LAN DNS1 */
- 	{ "lan_dns2", "" },			/* LAN DNS2 */
--	{ "lan_domain", "" },			/* LAN domain name */
-+	{ "lan_domain", "lan" },		/* LAN domain name → libin.lan */
- 	{ "lan_stp", "1" },			/* LAN spanning tree protocol */
- 
- 	/* WAN H/W parameters */
-@@ -383,7 +383,7 @@ struct nvram_pair router_defaults[] = {
- 	{ "st_max_user", "10" },
- 	{ "apps_dms", "0" },
- 	{ "sh_num", "0" },
--	{ "computer_name", BOARD_NAME },
-+	{ "computer_name", "libin" },		/* hostname → http://libin.lan */
- 	{ "pcache_reclaim", "2" },
- 	{ "usb3_disable", "0" },
- 	{ "u2ec_enable", "1" },
