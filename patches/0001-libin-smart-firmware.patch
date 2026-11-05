@@ -1728,3 +1728,25 @@ diff --git a/trunk/user/www/n56u_ribbon_fixed/index.asp b/trunk/user/www/n56u_ri
                              <div class="row-fluid">
                                  <div class="span12">
                                      <div id="statusContainer" width="0" height="0" align="left" valign="top" ></div>
+
+diff --git a/trunk/user/shared/defaults.c b/trunk/user/shared/defaults.c
+--- a/trunk/user/shared/defaults.c
++++ b/trunk/user/shared/defaults.c
+@@ -57,7 +57,7 @@ struct nvram_pair router_defaults[] = {
+ 	{ "lan_dns_x", "1" },			/* LAN DNS [static|dhcp] */
+ 	{ "lan_dns1", "" },			/* LAN DNS1 */
+ 	{ "lan_dns2", "" },			/* LAN DNS2 */
+-	{ "lan_domain", "" },			/* LAN domain name */
++	{ "lan_domain", "lan" },		/* LAN domain name → libin.lan */
+ 	{ "lan_stp", "1" },			/* LAN spanning tree protocol */
+ 
+ 	/* WAN H/W parameters */
+@@ -383,7 +383,7 @@ struct nvram_pair router_defaults[] = {
+ 	{ "st_max_user", "10" },
+ 	{ "apps_dms", "0" },
+ 	{ "sh_num", "0" },
+-	{ "computer_name", BOARD_NAME },
++	{ "computer_name", "libin" },		/* hostname → http://libin.lan */
+ 	{ "pcache_reclaim", "2" },
+ 	{ "usb3_disable", "0" },
+ 	{ "u2ec_enable", "1" },
