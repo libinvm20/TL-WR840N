@@ -5,11 +5,12 @@ Custom Padavan firmware for the **TP-Link TL-WR845N v4** (MT7628NN, 4 MB flash, 
 - **Smart WAN Watchdog**: the router fixes its own internet drops.
 - **Device Usage**: live download and upload speed and totals for every device, on its own web page.
 - **Dark purple theme**: the whole web UI, including the icons, in dark colours with a purple accent. No extra size.
+- **Wi-Fi QR code**: scan it from the Network Map to join the Wi-Fi.
 - **Login page**: a styled login page instead of the browser pop-up, with the old pop-up kept as a fallback.
 - **Live status bar**: WAN IP, connected time, internet state and live download/upload speed on every page.
 - **Libin branding**: logo, page title, footer, SSH banner, default Wi-Fi name.
 
-Based on [TW641/padavan-ng](https://github.com/TW641/padavan-ng) (padavan-ng, Linux 3.4), pinned to commit `44e2dab`. GPL v2.
+Based on [lucktu/padavan_TW641](https://github.com/lucktu/padavan_TW641) (padavan-ng, Linux 3.4), pinned to commit `90f694d`. GPL v2.
 
 ## Version 2 changes
 
@@ -66,6 +67,8 @@ The web UI uses a dark theme everywhere: panels, tables, tabs, menus, buttons, i
 - **Icons:** the Network Map icon sheet `big-icons.png` has a dark palette and is the same size as before (9181 bytes). Active icons are bright, inactive ones are dim. The small menu and button icons use the white icon sheet.
 - **Light bars:** many pages set a light grey background directly on section headers. A few lines in `state.js` darken any such light background automatically, so light text stays readable on every page.
 - **Traffic charts:** the Network Traffic charts (Real Time and Last 24 Hours) use dark panels, dark range buttons and scrollbar, and a purple uplink line (downlink stays orange).
+- **Modern layout and style:** rounded panels with soft shadows, a purple gradient title bar, a sidebar with a highlighted current page and hover effect, lighter and easier-to-read links, uppercase table headers, row hover, purple focus glow on inputs and buttons, dark scrollbars. The page is centred and up to 1240 px wide on large screens, and stacks as cards on phones. The style is added by `state.js` when the page loads, so the CSS files do not grow.
+- **Dark fixes:** ticked rows in the MAC filter, DHCP, firewall, port-forward and similar lists no longer turn light blue, the current menu item is no longer dark teal, and the "someone else is logged in" page is dark.
 - **Purple accent:** every blue became purple: title bars, buttons, links, tabs, focus glow, alert boxes, the ON toggle switch, the loading spinner, the logo and the blue Network Map icons. White text on them is unchanged. Only the colours changed, so file sizes are the same.
 - **Browser cache:** the browser keeps CSS and images for about 30 days. After upgrading, press **Ctrl+F5** to see the new theme.
 
@@ -77,6 +80,14 @@ The box at the top of every page has two new rows, refreshed every 5 seconds (pa
 - **Internet**: a dot (green = internet OK, amber = limited, red = down), the WAN IP and how long the connection has been up.
 
 The speed comes from the WAN interface counters, so it shows the router's whole internet traffic, not one device. While a browser tab is in the background, the page stops polling the router, including the stock status refresh. The status bar and the Device Usage page share one small data file, so the router answers only one extra request every 5 seconds. The router's own status refresh was also slowed from 2 to 3 seconds to lower CPU use.
+
+## Wi-Fi QR code
+
+The Network Map shows a small **QR code** under the device icons. Scan it with a phone camera to join your 2.4GHz Wi-Fi without typing the password. Click the QR code to enlarge it. It works for WPA/WPA2 and open networks and includes the hidden-network flag. For other security types (WEP, enterprise) no QR code is shown. The QR code contains the Wi-Fi password, so it is only visible to someone logged in to the router.
+
+## Router name
+
+The router answers to **http://libin.lan** as well as its IP address (host name `libin`, domain `lan`).
 
 ## Login page
 
