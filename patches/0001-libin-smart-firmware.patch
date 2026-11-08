@@ -1365,264 +1365,6 @@ index 0000000..44c7f8a
 +++ b/trunk/user/www/n56u_ribbon_fixed/device_usage_data.asp
 @@ -0,0 +1 @@
 +<% nvram_dump("devusage.txt",""); %>
-diff --git a/trunk/user/www/n56u_ribbon_fixed/state.js b/trunk/user/www/n56u_ribbon_fixed/state.js
-index 795a2ee..6490cb8 100755
---- a/trunk/user/www/n56u_ribbon_fixed/state.js
-+++ b/trunk/user/www/n56u_ribbon_fixed/state.js
-@@ -85,6 +85,10 @@ function notify_status_vpn_client(vpnc_state){
- }
- 
- function get_changed_status(){
-+	if (document.hidden) {	// background tab: do not bother the router
-+		id_check_status = setTimeout("get_changed_status();", 5000);
-+		return;
-+	}
- 	var $j = jQuery.noConflict();
- 	$j.ajax({
- 		type: 'get',
-@@ -105,16 +109,20 @@ function get_changed_status(){
- function get_system_info(){
- 	var $j = jQuery.noConflict();
- 	clearTimeout(id_system_info);
-+	if (document.hidden) {	// background tab: do not bother the router
-+		id_system_info = setTimeout('get_system_info()', 3000);
-+		return;
-+	}
- 	$j.ajax({
- 		type: 'get',
- 		url: '/system_status_data.asp',
- 		dataType: 'script',
- 		cache: true,
- 		error: function(xhr) {
--			id_system_info = setTimeout('get_system_info()', 2000);
-+			id_system_info = setTimeout('get_system_info()', 3000);
- 		},
- 		success: function(response) {
--			id_system_info = setTimeout('get_system_info()', 2000);
-+			id_system_info = setTimeout('get_system_info()', 3000);
- 			setSystemInfo(response);
- 		}
- 	});
-@@ -229,6 +237,7 @@ var enabledBtnCommit = '<% nvram_match_x("","nvram_manual", "1", "btn-info"); %>
- 
- // L3 = The third Level of Menu
- function show_banner(L3){
-+	apply_branding();
- 	var bc = '';
- 	var style_2g = 'width:55px;';
- 	var style_5g = 'width:55px;';
-@@ -275,7 +284,7 @@ function show_banner(L3){
- 
- 	// block system info
- 	bc += '<div class="span6">\n';
--	bc += '<div class="well" style="margin-bottom: 0px; height: 109px; padding: 7px 6px 6px 6px;">\n';
-+	bc += '<div class="well" style="margin-bottom: 0px; height: 134px; padding: 7px 6px 6px 6px;">\n';
- 	bc += '<div class="row-fluid">\n';
- 
- 	bc += '<div id="main_info">\n';
-@@ -296,6 +305,10 @@ function show_banner(L3){
- 	bc += '    <td><#SI_Uptime#></td>\n';
- 	bc += '    <td><span id="uptime_info">&nbsp;</span></td>\n';
- 	bc += '  </tr>\n';
-+	bc += '  <tr>\n';
-+	bc += '    <td>WAN speed</td>\n';
-+	bc += '    <td><span id="wan_speed"> -- </span></td>\n';
-+	bc += '  </tr>\n';
- 	bc += '</table>\n';
- 	bc += '</div>\n';
- 
-@@ -347,7 +360,7 @@ function show_banner(L3){
- 
- 	// block firmware version
- 	bc += '<div class="span6">\n';
--	bc += '<div class="well" style="margin-bottom: 0px; height: 109px; padding: 5px 6px 8px 6px;">\n';
-+	bc += '<div class="well" style="margin-bottom: 0px; height: 134px; padding: 5px 6px 8px 6px;">\n';
- 	bc += '<div class="row-fluid">\n';
- 	bc += '<table class="table table-condensed" style="margin-bottom: 0px">\n';
- 	bc += '  <tr>\n';
-@@ -359,6 +372,10 @@ function show_banner(L3){
- 	bc += '    <td><div class="form-inline"><input type="button" id="wifi2_b_g" class="btn btn-mini '+enabledGuest2Gclass+'" style="'+style_2g+'" value='+title_2g+' onclick="go_wguest(2);">&nbsp;<input type="button" id="wifi5_b_g" style="'+style_5g+'" class="btn btn-mini '+enabledGuest5Gclass+'" value='+title_5g+' onclick="go_wguest(5);"></div></td>\n';
- 	bc += '  </tr>\n';
- 	bc += '  <tr>\n';
-+	bc += '    <td>Internet:</td>\n';
-+	bc += '    <td><span id="wan_ip_info"> -- </span></td>\n';
-+	bc += '  </tr>\n';
-+	bc += '  <tr>\n';
- 	bc += '    <td><#General_x_FirmwareVersion_itemname#></td>\n';
- 	bc += '    <td><a href="/Advanced_FirmwareUpgrade_Content.asp"><span id="firmver" class="time"></span></a></td>\n';
- 	bc += '  </tr>\n';
-@@ -390,7 +407,7 @@ tabtitle[3] = new Array("", "<#menu5_3_1#>", "<#menu5_3_3#>", "<#menu5_3_4#>", "
- tabtitle[4] = new Array("", "<#menu5_5_1#>", "<#menu5_5_5#>", "<#menu5_5_2#>", "<#menu5_5_3#>", "<#menu5_5_4#>");
- tabtitle[5] = new Array("", "<#menu5_4_3#>", "<#menu5_4_1#>", "<#menu5_4_2#>", "<#menu5_4_4#>", "<#menu5_4_5#>");
- tabtitle[6] = new Array("", "<#menu5_6_2#>", "<#menu5_6_5#>", "<#menu5_6_1#>", "<#menu5_6_3#>", "<#menu5_6_4#>", "<#menu5_6_6#>");
--tabtitle[7] = new Array("", "<#menu5_10_1#>", "<#menu5_10_2#>", "<#menu5_10_3#>");
-+tabtitle[7] = new Array("", "<#menu5_10_1#>", "<#menu5_10_2#>", "<#menu5_10_3#>", "<#menu5_10_4#>");
- tabtitle[8] = new Array("", "<#menu5_11#>", "<#menu5_12#>", "WAN", "", "", "", "", "", "", "");
- tabtitle[9] = new Array("", "<#menu5_7_2#>", "<#menu5_7_3#>", "<#menu5_7_5#>", "<#menu5_7_6#>", "<#menu5_7_8#>");
- 
-@@ -403,7 +420,7 @@ tablink[3] = new Array("", "Advanced_WAN_Content.asp", "Advanced_IPv6_Content.as
- tablink[4] = new Array("", "Advanced_BasicFirewall_Content.asp", "Advanced_Netfilter_Content.asp", "Advanced_URLFilter_Content.asp", "Advanced_MACFilter_Content.asp", "Advanced_Firewall_Content.asp");
- tablink[5] = new Array("", "Advanced_AiDisk_others.asp", "Advanced_AiDisk_samba.asp", "Advanced_AiDisk_ftp.asp", "Advanced_Modem_others.asp", "Advanced_Printer_others.asp");
- tablink[6] = new Array("", "Advanced_System_Content.asp", "Advanced_Services_Content.asp", "Advanced_OperationMode_Content.asp", "Advanced_FirmwareUpgrade_Content.asp", "Advanced_SettingBackup_Content.asp", "Advanced_Console_Content.asp");
--tablink[7] = new Array("", "Advanced_Tweaks_Content.asp", "Advanced_Scripts_Content.asp", "Advanced_InetDetect_Content.asp");
-+tablink[7] = new Array("", "Advanced_Tweaks_Content.asp", "Advanced_Scripts_Content.asp", "Advanced_InetDetect_Content.asp", "Advanced_DeviceUsage_Content.asp");
- tablink[8] = new Array("", "Main_WStatus2g_Content.asp", "Main_WStatus_Content.asp", "", "", "", "", "", "", "", "");
- tablink[9] = new Array("", "Main_LogStatus_Content.asp", "Main_DHCPStatus_Content.asp", "Main_IPTStatus_Content.asp", "Main_RouteStatus_Content.asp", "Main_CTStatus_Content.asp");
- 
-@@ -567,12 +584,14 @@ function show_footer(){
- 	footer_code = '<div align="center" class="bottom-image"></div>\n';
- 	footer_code +='<div align="center" class="copyright"><#footer_copyright_desc#></div>\n';
- 	footer_code +='<div align="center">\n';
-+	footer_code +='  <span><b>Smart Router Firmware by Libin</b> &middot; Smart WAN Watchdog &amp; Device Usage</span></br>\n';
- 	footer_code +='  <span>Developed by © Andy Padavan &amp; Linaro &amp; Alxdm &amp; Mahtab &amp; <a href="https://gitlab.com/hadzhioglu/padavan-ng">Hadzhioglu</a></span></br>\n';
- 	footer_code +='  <span>Firmware distribution is prohibited</span></br>\n';
- 	footer_code +='  <span>Non-Commercial Use Only</span></br>\n';
- 	footer_code +='</div>\n';
- 
- 	$("footer").innerHTML = footer_code;
-+	apply_branding();
- 
- 	flash_button();
- }
-@@ -647,6 +666,138 @@ function show_loading_obj(){
- 	id_check_status = setTimeout('hideLoading();', 3000);
- }
- 
-+// Branding + mobile layout (Libin build). Injected from here because
-+// state.js is never cached by the router, while .png/.css are cached for 30 days.
-+var im_theme_css = 'html{color-scheme:dark}::selection{background:#610ac2;color:#fff}input[type=checkbox],input[type=radio]{accent-color:#610ad6}';
-+var im_mobile_css = ''
-+ + '@media (max-width: 979px) {'
-+ + ' body { overflow-x: hidden; }'
-+ + ' .wrapper, .syslog_panel { width: auto !important; }'
-+ + ' .wrapper { padding: 0 6px; }'
-+ + ' .container-fluid { padding-left: 0 !important; padding-right: 0 !important; margin-left: 0 !important; }'
-+ + ' .row-fluid [class*="span"] { float: none !important; display: block; width: auto !important; margin-left: 0 !important; }'
-+ + ' #logo { margin: 8px auto !important; }'
-+ + ' .table tr > th:first-child:nth-last-child(2), .table tr > th:first-child:nth-last-child(2) + td { display: block; width: auto !important; }'
-+ + ' .table tr > th:first-child:nth-last-child(2) + td { border-top: 0; padding-top: 0; }'
-+ + ' input, select, textarea { max-width: 100% !important; box-sizing: border-box; }'
-+ + ' .im-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }'
-+ + ' .nav-tabs > li { float: none; display: inline-block; }'
-+ + ' .box_head { font-size: 15px; }'
-+ + '}';
-+
-+// Live WAN info for the status bar. One shared request to /device_usage_data.asp
-+// (a small file written every few seconds by /usr/bin/devusage) feeds both the
-+// status bar and the Device Usage page, so the router only answers one request.
-+var du_subs = [], du_last = '', du_on = 0, wan_live_on = 0;
-+
-+function wan_fmt_rate(bps){
-+	if (bps >= 1000000) return (bps / 1000000).toFixed(1) + ' Mbps';
-+	if (bps >= 1000) return Math.round(bps / 1000) + ' kbps';
-+	return '0 kbps';
-+}
-+
-+function wan_fmt_time(sec){
-+	var d = Math.floor(sec / 86400), h = Math.floor(sec % 86400 / 3600), m = Math.floor(sec % 3600 / 60);
-+	return d ? d + 'd ' + h + 'h' : (h ? h + 'h ' + m + 'm' : m + 'm');
-+}
-+
-+function du_poll(){
-+	var $j = jQuery.noConflict();
-+	if (document.hidden) {
-+		setTimeout(du_poll, 5000);
-+		return;
-+	}
-+	$j.ajax({
-+		type: 'get',
-+		url: '/device_usage_data.asp',
-+		dataType: 'text',
-+		cache: true,
-+		success: function(r){
-+			du_last = r;
-+			for (var i = 0; i < du_subs.length; i++)
-+				du_subs[i](r);
-+		},
-+		complete: function(){ setTimeout(du_poll, 5000); }
-+	});
-+}
-+
-+function du_subscribe(fn){
-+	du_subs.push(fn);
-+	if (du_last)
-+		fn(du_last);
-+	if (!du_on) {
-+		du_on = 1;
-+		du_poll();
-+	}
-+}
-+
-+function wan_live_show(text){
-+	var $j = jQuery.noConflict(), L = text.split('\n'), p = null, i, c = '#d9534f', txt;
-+	for (i = 0; i < L.length; i++) {
-+		if (L[i].charAt(0) == '#') {
-+			p = L[i].split('|');
-+			break;
-+		}
-+	}
-+	if (!p || p.length < 5)
-+		return;
-+	if (new_wan_internet == '1') c = '#5cb85c';
-+	else if (new_wan_internet == '2') c = '#f0ad4e';
-+	txt = '<span style="color:' + c + ';">&#9679;</span> ';
-+	txt += p[1] ? p[1] + ' &middot; ' + wan_fmt_time(+p[2]) : 'not connected';
-+	$j('#wan_ip_info').html(txt);
-+	$j('#wan_speed').html('&darr; ' + wan_fmt_rate(+p[3]) + ' &nbsp;&uarr; ' + wan_fmt_rate(+p[4]));
-+}
-+
-+function apply_branding(){
-+	var d = document, h = d.getElementsByTagName('head')[0], i, t;
-+	if (h && !d.querySelector('meta[name="viewport"]')) {
-+		var m = d.createElement('meta');
-+		m.name = 'viewport';
-+		m.content = 'width=device-width, initial-scale=1';
-+		h.appendChild(m);
-+	}
-+	if (h && !d.getElementById('im_mobile_css')) {
-+		var st = d.createElement('style');
-+		st.id = 'im_mobile_css';
-+		st.appendChild(d.createTextNode(im_theme_css + im_mobile_css));
-+		h.appendChild(st);
-+	}
-+	if (!wan_live_on && d.getElementById('wan_speed')) {
-+		wan_live_on = 1;
-+		du_subscribe(wan_live_show);
-+	}
-+	var lg = d.getElementById('logo');
-+	if (lg)
-+		lg.style.backgroundImage = 'url(/bootstrap/img/libin_logo.png)';
-+	// hide the VPN Server / VPN Client menu entries (not used on this router)
-+	var vm = d.querySelectorAll('#mainMenu a[href*="vpn" i]');
-+	for (i = 0; i < vm.length; i++)
-+		if (vm[i].parentNode)
-+			vm[i].parentNode.style.display = 'none';
-+	// inline light backgrounds (e.g. #E3E3E3 section bars) -> dark, so light text stays readable
-+	var ib = d.querySelectorAll('[style*="background"]'), c;
-+	for (i = 0; i < ib.length; i++) {
-+		c = ib[i].style.backgroundColor.match(/\d+/g);
-+		if (c && c.length >= 3 && Math.min(c[0], c[1], c[2]) >= 205 && Math.max(c[0], c[1], c[2]) - Math.min(c[0], c[1], c[2]) <= 12)
-+			ib[i].style.backgroundColor = '#333';
-+	}
-+	// wide tables (3+ columns) scroll sideways on small screens instead of overflowing
-+	var tbls = d.querySelectorAll('table.table');
-+	for (i = 0; i < tbls.length; i++) {
-+		t = tbls[i];
-+		if (t.parentNode && t.parentNode.className == 'im-scroll')
-+			continue;
-+		var r = t.rows && t.rows.length ? t.rows[t.rows.length > 1 ? 1 : 0] : null;
-+		if (!r || r.cells.length < 3)
-+			continue;
-+		var w = d.createElement('div');
-+		w.className = 'im-scroll';
-+		t.parentNode.insertBefore(w, t);
-+		w.appendChild(t);
-+	}
-+}
-+
- function submit_language(){
- 	if($("select_lang").value != $("preferred_lang").value){
- 		showLoading();
 diff --git a/trunk/user/shared/defaults.c b/trunk/user/shared/defaults.c
 index 245d70b..ae1562f 100644
 --- a/trunk/user/shared/defaults.c
@@ -1810,3 +1552,486 @@ index f0241f1..5e4b6f8 100755
                              <div class="row-fluid">
                                  <div class="span12">
                                      <div id="statusContainer" width="0" height="0" align="left" valign="top" ></div>
+diff --git a/trunk/user/www/n56u_ribbon_fixed/state.js b/trunk/user/www/n56u_ribbon_fixed/state.js
+index 795a2ee..00e64e2 100755
+--- a/trunk/user/www/n56u_ribbon_fixed/state.js
++++ b/trunk/user/www/n56u_ribbon_fixed/state.js
+@@ -85,6 +85,10 @@ function notify_status_vpn_client(vpnc_state){
+ }
+ 
+ function get_changed_status(){
++	if (document.hidden) {	// background tab: do not bother the router
++		id_check_status = setTimeout("get_changed_status();", 5000);
++		return;
++	}
+ 	var $j = jQuery.noConflict();
+ 	$j.ajax({
+ 		type: 'get',
+@@ -105,16 +109,20 @@ function get_changed_status(){
+ function get_system_info(){
+ 	var $j = jQuery.noConflict();
+ 	clearTimeout(id_system_info);
++	if (document.hidden) {	// background tab: do not bother the router
++		id_system_info = setTimeout('get_system_info()', 3000);
++		return;
++	}
+ 	$j.ajax({
+ 		type: 'get',
+ 		url: '/system_status_data.asp',
+ 		dataType: 'script',
+ 		cache: true,
+ 		error: function(xhr) {
+-			id_system_info = setTimeout('get_system_info()', 2000);
++			id_system_info = setTimeout('get_system_info()', 3000);
+ 		},
+ 		success: function(response) {
+-			id_system_info = setTimeout('get_system_info()', 2000);
++			id_system_info = setTimeout('get_system_info()', 3000);
+ 			setSystemInfo(response);
+ 		}
+ 	});
+@@ -229,6 +237,7 @@ var enabledBtnCommit = '<% nvram_match_x("","nvram_manual", "1", "btn-info"); %>
+ 
+ // L3 = The third Level of Menu
+ function show_banner(L3){
++	apply_branding();
+ 	var bc = '';
+ 	var style_2g = 'width:55px;';
+ 	var style_5g = 'width:55px;';
+@@ -275,7 +284,7 @@ function show_banner(L3){
+ 
+ 	// block system info
+ 	bc += '<div class="span6">\n';
+-	bc += '<div class="well" style="margin-bottom: 0px; height: 109px; padding: 7px 6px 6px 6px;">\n';
++	bc += '<div class="well" style="margin-bottom: 0px; height: 134px; padding: 7px 6px 6px 6px;">\n';
+ 	bc += '<div class="row-fluid">\n';
+ 
+ 	bc += '<div id="main_info">\n';
+@@ -296,6 +305,10 @@ function show_banner(L3){
+ 	bc += '    <td><#SI_Uptime#></td>\n';
+ 	bc += '    <td><span id="uptime_info">&nbsp;</span></td>\n';
+ 	bc += '  </tr>\n';
++	bc += '  <tr>\n';
++	bc += '    <td>WAN speed</td>\n';
++	bc += '    <td><span id="wan_speed"> -- </span></td>\n';
++	bc += '  </tr>\n';
+ 	bc += '</table>\n';
+ 	bc += '</div>\n';
+ 
+@@ -347,7 +360,7 @@ function show_banner(L3){
+ 
+ 	// block firmware version
+ 	bc += '<div class="span6">\n';
+-	bc += '<div class="well" style="margin-bottom: 0px; height: 109px; padding: 5px 6px 8px 6px;">\n';
++	bc += '<div class="well" style="margin-bottom: 0px; height: 134px; padding: 5px 6px 8px 6px;">\n';
+ 	bc += '<div class="row-fluid">\n';
+ 	bc += '<table class="table table-condensed" style="margin-bottom: 0px">\n';
+ 	bc += '  <tr>\n';
+@@ -359,6 +372,10 @@ function show_banner(L3){
+ 	bc += '    <td><div class="form-inline"><input type="button" id="wifi2_b_g" class="btn btn-mini '+enabledGuest2Gclass+'" style="'+style_2g+'" value='+title_2g+' onclick="go_wguest(2);">&nbsp;<input type="button" id="wifi5_b_g" style="'+style_5g+'" class="btn btn-mini '+enabledGuest5Gclass+'" value='+title_5g+' onclick="go_wguest(5);"></div></td>\n';
+ 	bc += '  </tr>\n';
+ 	bc += '  <tr>\n';
++	bc += '    <td>Internet:</td>\n';
++	bc += '    <td><span id="wan_ip_info"> -- </span></td>\n';
++	bc += '  </tr>\n';
++	bc += '  <tr>\n';
+ 	bc += '    <td><#General_x_FirmwareVersion_itemname#></td>\n';
+ 	bc += '    <td><a href="/Advanced_FirmwareUpgrade_Content.asp"><span id="firmver" class="time"></span></a></td>\n';
+ 	bc += '  </tr>\n';
+@@ -390,7 +407,7 @@ tabtitle[3] = new Array("", "<#menu5_3_1#>", "<#menu5_3_3#>", "<#menu5_3_4#>", "
+ tabtitle[4] = new Array("", "<#menu5_5_1#>", "<#menu5_5_5#>", "<#menu5_5_2#>", "<#menu5_5_3#>", "<#menu5_5_4#>");
+ tabtitle[5] = new Array("", "<#menu5_4_3#>", "<#menu5_4_1#>", "<#menu5_4_2#>", "<#menu5_4_4#>", "<#menu5_4_5#>");
+ tabtitle[6] = new Array("", "<#menu5_6_2#>", "<#menu5_6_5#>", "<#menu5_6_1#>", "<#menu5_6_3#>", "<#menu5_6_4#>", "<#menu5_6_6#>");
+-tabtitle[7] = new Array("", "<#menu5_10_1#>", "<#menu5_10_2#>", "<#menu5_10_3#>");
++tabtitle[7] = new Array("", "<#menu5_10_1#>", "<#menu5_10_2#>", "<#menu5_10_3#>", "<#menu5_10_4#>");
+ tabtitle[8] = new Array("", "<#menu5_11#>", "<#menu5_12#>", "WAN", "", "", "", "", "", "", "");
+ tabtitle[9] = new Array("", "<#menu5_7_2#>", "<#menu5_7_3#>", "<#menu5_7_5#>", "<#menu5_7_6#>", "<#menu5_7_8#>");
+ 
+@@ -403,7 +420,7 @@ tablink[3] = new Array("", "Advanced_WAN_Content.asp", "Advanced_IPv6_Content.as
+ tablink[4] = new Array("", "Advanced_BasicFirewall_Content.asp", "Advanced_Netfilter_Content.asp", "Advanced_URLFilter_Content.asp", "Advanced_MACFilter_Content.asp", "Advanced_Firewall_Content.asp");
+ tablink[5] = new Array("", "Advanced_AiDisk_others.asp", "Advanced_AiDisk_samba.asp", "Advanced_AiDisk_ftp.asp", "Advanced_Modem_others.asp", "Advanced_Printer_others.asp");
+ tablink[6] = new Array("", "Advanced_System_Content.asp", "Advanced_Services_Content.asp", "Advanced_OperationMode_Content.asp", "Advanced_FirmwareUpgrade_Content.asp", "Advanced_SettingBackup_Content.asp", "Advanced_Console_Content.asp");
+-tablink[7] = new Array("", "Advanced_Tweaks_Content.asp", "Advanced_Scripts_Content.asp", "Advanced_InetDetect_Content.asp");
++tablink[7] = new Array("", "Advanced_Tweaks_Content.asp", "Advanced_Scripts_Content.asp", "Advanced_InetDetect_Content.asp", "Advanced_DeviceUsage_Content.asp");
+ tablink[8] = new Array("", "Main_WStatus2g_Content.asp", "Main_WStatus_Content.asp", "", "", "", "", "", "", "", "");
+ tablink[9] = new Array("", "Main_LogStatus_Content.asp", "Main_DHCPStatus_Content.asp", "Main_IPTStatus_Content.asp", "Main_RouteStatus_Content.asp", "Main_CTStatus_Content.asp");
+ 
+@@ -537,7 +554,7 @@ function show_menu(L1, L2, L3){
+ 		if(menuL2_title[i] == "")
+ 			continue;
+ 		else if(L2 == i)
+-			menu2_code += '<a href="javascript: void(0)" style="color: #005580; font-weight: bold"><i class="icon-minus"></i>&nbsp;&nbsp;'+menuL2_title[i]+'</a>\n';
++			menu2_code += '<a href="javascript: void(0)" style="color: #c4b5fd; font-weight: bold"><i class="icon-minus"></i>&nbsp;&nbsp;'+menuL2_title[i]+'</a>\n';
+ 		else
+ 			menu2_code += '<a href="'+menuL2_link[i]+'"><i class="icon-minus"></i>&nbsp;&nbsp;'+menuL2_title[i]+'</a>\n';
+ 	}
+@@ -567,12 +584,14 @@ function show_footer(){
+ 	footer_code = '<div align="center" class="bottom-image"></div>\n';
+ 	footer_code +='<div align="center" class="copyright"><#footer_copyright_desc#></div>\n';
+ 	footer_code +='<div align="center">\n';
++	footer_code +='  <span><b>Smart Router Firmware by Libin</b> &middot; Smart WAN Watchdog &amp; Device Usage</span></br>\n';
+ 	footer_code +='  <span>Developed by © Andy Padavan &amp; Linaro &amp; Alxdm &amp; Mahtab &amp; <a href="https://gitlab.com/hadzhioglu/padavan-ng">Hadzhioglu</a></span></br>\n';
+ 	footer_code +='  <span>Firmware distribution is prohibited</span></br>\n';
+ 	footer_code +='  <span>Non-Commercial Use Only</span></br>\n';
+ 	footer_code +='</div>\n';
+ 
+ 	$("footer").innerHTML = footer_code;
++	apply_branding();
+ 
+ 	flash_button();
+ }
+@@ -647,6 +666,169 @@ function show_loading_obj(){
+ 	id_check_status = setTimeout('hideLoading();', 3000);
+ }
+ 
++// Branding + mobile layout (Libin build). Injected from here because
++// state.js is never cached by the router, while .png/.css are cached for 30 days.
++var im_theme_css = ''
++ + 'html{color-scheme:dark}'
++ + 'body{font-family:"Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.45}'
++ + '::selection{background:#610ac2;color:#fff}'
++ + 'input[type=checkbox],input[type=radio]{accent-color:#610ad6}'
++ + 'a{color:#b69cff;transition:color .15s}'
++ + 'a:hover{color:#e2d8ff;text-decoration:none}'
++ + '.wrapper{width:auto;max-width:1240px;padding:0 14px}'
++ + '.well{border-radius:10px;border:1px solid #343434;box-shadow:0 8px 24px rgba(0,0,0,.35)}'
++ + '.box h2.box_head,.box.grad_colour_dark_blue h2.box_head{border-radius:10px 10px 0 0;background-image:linear-gradient(90deg,#5b21b6,#7c3aed)!important;font-size:15px;height:38px;line-height:38px;letter-spacing:.3px}'
++ + '.side_nav ul{border-radius:10px;overflow:hidden}'
++ + '.side_nav a{color:#c9b8ff!important}'
++ + '.side_nav li:hover>a,.side_nav li.active>a,.side_nav div.accordion a[style]{color:#fff!important}'
++ + '.side_nav ul a{font:600 13px/36px "Segoe UI",system-ui,Arial,sans-serif;text-shadow:none;transition:background .15s,color .15s;border-top:0;border-bottom:1px solid #2c2c2c}'
++ + '.side_nav ul li:hover>a,.side_nav ul li.active>a{background:#2d2442 none!important;color:#fff;text-shadow:none;border-top:0;border-bottom:1px solid #2c2c2c}'
++ + '.side_nav ul li.active>a{background:#3a2a66 none!important;box-shadow:inset 3px 0 0 #8e44f0}'
++ + 'li div.accordion a{background:#222;font-size:12px;line-height:32px}'
++ + '.clearfix li div.accordion a:hover{font-weight:600;background:#2d2442;color:#fff}'
++ + '.table tr>th:first-child:nth-last-child(n+3),.table tr>th:first-child:nth-last-child(n+3)~th{text-transform:uppercase;font-size:11px;letter-spacing:.6px;color:#a79cc4}'
++ + '.table tbody tr:hover>td{background:#2a2535}'
++ + '.btn{border-radius:6px;transition:filter .15s,box-shadow .15s}'
++ + '.btn:hover{filter:brightness(1.12)}'
++ + '.btn-primary{background-image:linear-gradient(#7c3aed,#6d28d9)!important;border-color:#5b21b6;box-shadow:0 2px 10px rgba(124,58,237,.35)}'
++ + 'input[type=text],input[type=password],input.input,select,select.input,textarea{border-radius:6px;transition:border-color .15s,box-shadow .15s}'
++ + 'input:focus,select:focus,textarea:focus{border-color:#8e44f0!important;box-shadow:0 0 0 3px rgba(142,68,240,.25)!important;outline:0}'
++ + '.alert{border-radius:8px}'
++ + '.nav-tabs>li>a{border-radius:8px 8px 0 0;transition:background .15s,color .15s}'
++ + '.nav-tabs>.active>a,.nav-tabs>.active>a:hover{box-shadow:inset 0 2px 0 #8e44f0}'
++ + '#footer,.copyright{color:#8a8aa0;font-size:12px}'
++ + '::-webkit-scrollbar{width:10px;height:10px}'
++ + '::-webkit-scrollbar-thumb{background:#4b3a7a;border-radius:6px}'
++ + '::-webkit-scrollbar-track{background:#1b1b1b}';
++var im_mobile_css = ''
++ + '@media (max-width: 979px) {'
++ + ' body { overflow-x: hidden; }'
++ + ' .wrapper, .syslog_panel { width: auto !important; }'
++ + ' .wrapper { padding: 0 6px; }'
++ + ' .container-fluid { padding-left: 0 !important; padding-right: 0 !important; margin-left: 0 !important; }'
++ + ' .row-fluid [class*="span"] { float: none !important; display: block; width: auto !important; margin-left: 0 !important; }'
++ + ' #logo { margin: 8px auto !important; }'
++ + ' .table tr > th:first-child:nth-last-child(2), .table tr > th:first-child:nth-last-child(2) + td { display: block; width: auto !important; }'
++ + ' .table tr > th:first-child:nth-last-child(2) + td { border-top: 0; padding-top: 0; }'
++ + ' input, select, textarea { max-width: 100% !important; box-sizing: border-box; }'
++ + ' .im-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }'
++ + ' .nav-tabs > li { float: none; display: inline-block; }'
++ + ' .box_head { font-size: 15px; }'
++ + '}';
++
++// Live WAN info for the status bar. One shared request to /device_usage_data.asp
++// (a small file written every few seconds by /usr/bin/devusage) feeds both the
++// status bar and the Device Usage page, so the router only answers one request.
++var du_subs = [], du_last = '', du_on = 0, wan_live_on = 0;
++
++function wan_fmt_rate(bps){
++	if (bps >= 1000000) return (bps / 1000000).toFixed(1) + ' Mbps';
++	if (bps >= 1000) return Math.round(bps / 1000) + ' kbps';
++	return '0 kbps';
++}
++
++function wan_fmt_time(sec){
++	var d = Math.floor(sec / 86400), h = Math.floor(sec % 86400 / 3600), m = Math.floor(sec % 3600 / 60);
++	return d ? d + 'd ' + h + 'h' : (h ? h + 'h ' + m + 'm' : m + 'm');
++}
++
++function du_poll(){
++	var $j = jQuery.noConflict();
++	if (document.hidden) {
++		setTimeout(du_poll, 5000);
++		return;
++	}
++	$j.ajax({
++		type: 'get',
++		url: '/device_usage_data.asp',
++		dataType: 'text',
++		cache: true,
++		success: function(r){
++			du_last = r;
++			for (var i = 0; i < du_subs.length; i++)
++				du_subs[i](r);
++		},
++		complete: function(){ setTimeout(du_poll, 5000); }
++	});
++}
++
++function du_subscribe(fn){
++	du_subs.push(fn);
++	if (du_last)
++		fn(du_last);
++	if (!du_on) {
++		du_on = 1;
++		du_poll();
++	}
++}
++
++function wan_live_show(text){
++	var $j = jQuery.noConflict(), L = text.split('\n'), p = null, i, c = '#d9534f', txt;
++	for (i = 0; i < L.length; i++) {
++		if (L[i].charAt(0) == '#') {
++			p = L[i].split('|');
++			break;
++		}
++	}
++	if (!p || p.length < 5)
++		return;
++	if (new_wan_internet == '1') c = '#5cb85c';
++	else if (new_wan_internet == '2') c = '#f0ad4e';
++	txt = '<span style="color:' + c + ';">&#9679;</span> ';
++	txt += p[1] ? p[1] + ' &middot; ' + wan_fmt_time(+p[2]) : 'not connected';
++	$j('#wan_ip_info').html(txt);
++	$j('#wan_speed').html('&darr; ' + wan_fmt_rate(+p[3]) + ' &nbsp;&uarr; ' + wan_fmt_rate(+p[4]));
++}
++
++function apply_branding(){
++	var d = document, h = d.getElementsByTagName('head')[0], i, t;
++	if (h && !d.querySelector('meta[name="viewport"]')) {
++		var m = d.createElement('meta');
++		m.name = 'viewport';
++		m.content = 'width=device-width, initial-scale=1';
++		h.appendChild(m);
++	}
++	if (h && !d.getElementById('im_mobile_css')) {
++		var st = d.createElement('style');
++		st.id = 'im_mobile_css';
++		st.appendChild(d.createTextNode(im_theme_css + im_mobile_css));
++		h.appendChild(st);
++	}
++	if (!wan_live_on && d.getElementById('wan_speed')) {
++		wan_live_on = 1;
++		du_subscribe(wan_live_show);
++	}
++	var lg = d.getElementById('logo');
++	if (lg)
++		lg.style.backgroundImage = 'url(/bootstrap/img/libin_logo.png)';
++	// hide the VPN Server / VPN Client menu entries (not used on this router)
++	var vm = d.querySelectorAll('#mainMenu a[href*="vpn" i]');
++	for (i = 0; i < vm.length; i++)
++		if (vm[i].parentNode)
++			vm[i].parentNode.style.display = 'none';
++	// inline light backgrounds (e.g. #E3E3E3 section bars) -> dark, so light text stays readable
++	var ib = d.querySelectorAll('[style*="background"]'), c;
++	for (i = 0; i < ib.length; i++) {
++		c = ib[i].style.backgroundColor.match(/\d+/g);
++		if (c && c.length >= 3 && Math.min(c[0], c[1], c[2]) >= 205 && Math.max(c[0], c[1], c[2]) - Math.min(c[0], c[1], c[2]) <= 12)
++			ib[i].style.backgroundColor = '#333';
++	}
++	// wide tables (3+ columns) scroll sideways on small screens instead of overflowing
++	var tbls = d.querySelectorAll('table.table');
++	for (i = 0; i < tbls.length; i++) {
++		t = tbls[i];
++		if (t.parentNode && t.parentNode.className == 'im-scroll')
++			continue;
++		var r = t.rows && t.rows.length ? t.rows[t.rows.length > 1 ? 1 : 0] : null;
++		if (!r || r.cells.length < 3)
++			continue;
++		var w = d.createElement('div');
++		w.className = 'im-scroll';
++		t.parentNode.insertBefore(w, t);
++		w.appendChild(t);
++	}
++}
++
+ function submit_language(){
+ 	if($("select_lang").value != $("preferred_lang").value){
+ 		showLoading();
+diff --git a/trunk/user/www/n56u_ribbon_fixed/Advanced_ACL2g_Content.asp b/trunk/user/www/n56u_ribbon_fixed/Advanced_ACL2g_Content.asp
+index e302db3..00cddff 100755
+--- a/trunk/user/www/n56u_ribbon_fixed/Advanced_ACL2g_Content.asp
++++ b/trunk/user/www/n56u_ribbon_fixed/Advanced_ACL2g_Content.asp
+@@ -212,7 +212,7 @@ function showACLList(){
+ 
+ 
+ function changeBgColor(obj, num){
+-	$("row" + num).style.background=(obj.checked)?'#D9EDF7':'whiteSmoke';
++	$("row" + num).style.background=(obj.checked)?'#2a2340':'#262626';
+ }
+ 
+ function done_validating(action){
+diff --git a/trunk/user/www/n56u_ribbon_fixed/Advanced_ACL_Content.asp b/trunk/user/www/n56u_ribbon_fixed/Advanced_ACL_Content.asp
+index 8794d1b..3153b0e 100755
+--- a/trunk/user/www/n56u_ribbon_fixed/Advanced_ACL_Content.asp
++++ b/trunk/user/www/n56u_ribbon_fixed/Advanced_ACL_Content.asp
+@@ -205,7 +205,7 @@ function showACLList(){
+ }
+ 
+ function changeBgColor(obj, num){
+-	$("row" + num).style.background=(obj.checked)?'#D9EDF7':'whiteSmoke';
++	$("row" + num).style.background=(obj.checked)?'#2a2340':'#262626';
+ }
+ 
+ function done_validating(action){
+diff --git a/trunk/user/www/n56u_ribbon_fixed/Advanced_AiDisk_ftp.asp b/trunk/user/www/n56u_ribbon_fixed/Advanced_AiDisk_ftp.asp
+index 6d6234d..8822e2f 100755
+--- a/trunk/user/www/n56u_ribbon_fixed/Advanced_AiDisk_ftp.asp
++++ b/trunk/user/www/n56u_ribbon_fixed/Advanced_AiDisk_ftp.asp
+@@ -202,13 +202,13 @@ function get_permission_of_folder(accountName, poolName, folderName, protocol){
+ function contrastSelectAccount(selectedObj){
+ 	if(this.lastClickedAccount != 0){
+ 		this.lastClickedAccount.style.marginRight = "0px";
+-		this.lastClickedAccount.style.background = "url(/images/AiDisk/user_icon0.gif) #F8F8F8 left no-repeat";
++		this.lastClickedAccount.style.background = "url(/images/AiDisk/user_icon0.gif) #262626 left no-repeat";
+ 		this.lastClickedAccount.style.cursor = "pointer";
+ 		this.lastClickedAccount.style.fontWeight ="normal";
+ 	}
+ 
+ 	selectedObj.style.marginRight = "-1px";
+-	selectedObj.style.background = "url(/images/AiDisk/user_icon.gif) #FFF left no-repeat";
++	selectedObj.style.background = "url(/images/AiDisk/user_icon.gif) #2b2b2b left no-repeat";
+ 	selectedObj.style.cursor = "default";
+ 	selectedObj.style.fontWeight ="bolder";
+ 
+diff --git a/trunk/user/www/n56u_ribbon_fixed/Advanced_AiDisk_samba.asp b/trunk/user/www/n56u_ribbon_fixed/Advanced_AiDisk_samba.asp
+index 1804f35..b548f94 100755
+--- a/trunk/user/www/n56u_ribbon_fixed/Advanced_AiDisk_samba.asp
++++ b/trunk/user/www/n56u_ribbon_fixed/Advanced_AiDisk_samba.asp
+@@ -197,13 +197,13 @@ function get_permission_of_folder(accountName, poolName, folderName, protocol){
+ function contrastSelectAccount(selectedObj){
+ 	if(this.lastClickedAccount != 0){
+ 		this.lastClickedAccount.style.marginRight = "0px";
+-		this.lastClickedAccount.style.background = "url(/images/AiDisk/user_icon0.gif) #F8F8F8 left no-repeat";
++		this.lastClickedAccount.style.background = "url(/images/AiDisk/user_icon0.gif) #262626 left no-repeat";
+ 		this.lastClickedAccount.style.cursor = "pointer";
+ 		this.lastClickedAccount.style.fontWeight ="normal";
+ 	}
+ 
+ 	//selectedObj.style.marginRight = "-1px";
+-	selectedObj.style.background = "url(/images/AiDisk/user_icon.gif) #FFF left no-repeat";
++	selectedObj.style.background = "url(/images/AiDisk/user_icon.gif) #2b2b2b left no-repeat";
+ 	selectedObj.style.cursor = "default";
+ 	selectedObj.style.paddingLeft = "20px";
+ 
+diff --git a/trunk/user/www/n56u_ribbon_fixed/Advanced_DHCP_Content.asp b/trunk/user/www/n56u_ribbon_fixed/Advanced_DHCP_Content.asp
+index 427d8b8..0dd2446 100755
+--- a/trunk/user/www/n56u_ribbon_fixed/Advanced_DHCP_Content.asp
++++ b/trunk/user/www/n56u_ribbon_fixed/Advanced_DHCP_Content.asp
+@@ -342,7 +342,7 @@ function showMDHCPList(){
+ }
+ 
+ function changeBgColor(obj, num){
+-	$("row" + num).style.background=(obj.checked)?'#D9EDF7':'whiteSmoke';
++	$("row" + num).style.background=(obj.checked)?'#2a2340':'#262626';
+ }
+ 
+ </script>
+diff --git a/trunk/user/www/n56u_ribbon_fixed/Advanced_Firewall_Content.asp b/trunk/user/www/n56u_ribbon_fixed/Advanced_Firewall_Content.asp
+index e58afd1..acf7fdc 100755
+--- a/trunk/user/www/n56u_ribbon_fixed/Advanced_Firewall_Content.asp
++++ b/trunk/user/www/n56u_ribbon_fixed/Advanced_Firewall_Content.asp
+@@ -345,7 +345,7 @@ function showLWFilterList(){
+ }
+ 
+ function changeBgColor(obj, num){
+-	$("row" + num).style.background=(obj.checked)?'#D9EDF7':'whiteSmoke';
++	$("row" + num).style.background=(obj.checked)?'#2a2340':'#262626';
+ }
+ 
+ </script>
+diff --git a/trunk/user/www/n56u_ribbon_fixed/Advanced_GWStaticRoute_Content.asp b/trunk/user/www/n56u_ribbon_fixed/Advanced_GWStaticRoute_Content.asp
+index 1719b2d..27cb674 100755
+--- a/trunk/user/www/n56u_ribbon_fixed/Advanced_GWStaticRoute_Content.asp
++++ b/trunk/user/www/n56u_ribbon_fixed/Advanced_GWStaticRoute_Content.asp
+@@ -145,7 +145,7 @@ function showGWStaticList(){
+ }
+ 
+ function changeBgColor(obj, num){
+-	$("row" + num).style.background=(obj.checked)?'#D9EDF7':'whiteSmoke';
++	$("row" + num).style.background=(obj.checked)?'#2a2340':'#262626';
+ }
+ 
+ </script>
+diff --git a/trunk/user/www/n56u_ribbon_fixed/Advanced_MACFilter_Content.asp b/trunk/user/www/n56u_ribbon_fixed/Advanced_MACFilter_Content.asp
+index 5bf8eb5..c778b5e 100755
+--- a/trunk/user/www/n56u_ribbon_fixed/Advanced_MACFilter_Content.asp
++++ b/trunk/user/www/n56u_ribbon_fixed/Advanced_MACFilter_Content.asp
+@@ -305,7 +305,7 @@ function showMFList(){
+ }
+ 
+ function changeBgColor(obj, num){
+-	$("row" + num).style.background=(obj.checked)?'#D9EDF7':'whiteSmoke';
++	$("row" + num).style.background=(obj.checked)?'#2a2340':'#262626';
+ }
+ 
+ function done_validating(action){
+diff --git a/trunk/user/www/n56u_ribbon_fixed/Advanced_VirtualServer_Content.asp b/trunk/user/www/n56u_ribbon_fixed/Advanced_VirtualServer_Content.asp
+index b9700aa..f9ccb88 100755
+--- a/trunk/user/www/n56u_ribbon_fixed/Advanced_VirtualServer_Content.asp
++++ b/trunk/user/www/n56u_ribbon_fixed/Advanced_VirtualServer_Content.asp
+@@ -447,7 +447,7 @@ function showVSList(){
+ }
+ 
+ function changeBgColor(obj, num){
+-	$("row" + num).style.background=(obj.checked)?'#D9EDF7':'whiteSmoke';
++	$("row" + num).style.background=(obj.checked)?'#2a2340':'#262626';
+ }
+ 
+ function valid_IP_subnet(obj){
+diff --git a/trunk/user/www/n56u_ribbon_fixed/Nologin.asp b/trunk/user/www/n56u_ribbon_fixed/Nologin.asp
+index 95366a0..2d9df60 100755
+--- a/trunk/user/www/n56u_ribbon_fixed/Nologin.asp
++++ b/trunk/user/www/n56u_ribbon_fixed/Nologin.asp
+@@ -11,7 +11,7 @@
+ 
+ <style type="text/css">
+ body {
+-  background: url("/bootstrap/img/dark-bg.jpg") repeat scroll center top transparent;
++  background: url("/bootstrap/img/dark-bg.jpg") repeat scroll center top #181818;
+   min-width: 1060px;
+ }
+ 
+@@ -19,10 +19,10 @@ body {
+   padding: 10px 20px 2px 20px;
+   margin-bottom: 10px;
+   margin-top: 10px;
+-  color: #c09853;
+-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+-  background-color: #fcf8e3;
+-  border: 1px solid #fbeed5;
++  color: #e6c07a;
++  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
++  background-color: #3a3320;
++  border: 1px solid #5a4a20;
+   -webkit-border-radius: 4px;
+   -moz-border-radius: 4px;
+   border-radius: 4px;
+@@ -33,9 +33,9 @@ body {
+ }
+ 
+ .alert-info {
+-  color: #3a87ad;
+-  background-color: #d9edf7;
+-  border-color: #bce8f1;
++  color: #c4b5fd;
++  background-color: #2a2340;
++  border-color: #4c3a7a;
+ }
+ 
+ #logined_ip_str
+diff --git a/trunk/user/www/n56u_ribbon_fixed/vpnsrv.asp b/trunk/user/www/n56u_ribbon_fixed/vpnsrv.asp
+index 4922a86..10e9dec 100755
+--- a/trunk/user/www/n56u_ribbon_fixed/vpnsrv.asp
++++ b/trunk/user/www/n56u_ribbon_fixed/vpnsrv.asp
+@@ -820,7 +820,7 @@ function showACLList(vnet_show,rnet_show,is_openvpn, is_wg){
+ }
+ 
+ function changeBgColor(obj, num){
+-	$("row" + num).style.background=(obj.checked)?'#D9EDF7':'whiteSmoke';
++	$("row" + num).style.background=(obj.checked)?'#2a2340':'#262626';
+ }
+ 
+ function bytesToIEC(bytes, precision){
