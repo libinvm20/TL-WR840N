@@ -1199,165 +1199,6 @@ index d334383..fca6320 100755
  ZapretAllowedClients=List of allowed client IP addresses
  ZapretWORestrictions=Without restrictions
 +menu5_10_4=Device Usage
-diff --git a/trunk/user/www/n56u_ribbon_fixed/Advanced_DeviceUsage_Content.asp b/trunk/user/www/n56u_ribbon_fixed/Advanced_DeviceUsage_Content.asp
-new file mode 100644
-index 0000000..18e4830
---- /dev/null
-+++ b/trunk/user/www/n56u_ribbon_fixed/Advanced_DeviceUsage_Content.asp
-@@ -0,0 +1,153 @@
-+<!DOCTYPE html>
-+<html>
-+<head>
-+<title><#Web_Title#> - <#menu5_10_4#></title>
-+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-+<meta http-equiv="Pragma" content="no-cache">
-+<meta http-equiv="Expires" content="-1">
-+
-+<link rel="shortcut icon" href="images/favicon.ico">
-+<link rel="icon" href="images/favicon.png">
-+<link rel="stylesheet" type="text/css" href="/bootstrap/css/bootstrap.min.css">
-+<link rel="stylesheet" type="text/css" href="/bootstrap/css/main.css">
-+
-+<script type="text/javascript" src="/jquery.js"></script>
-+<script type="text/javascript" src="/state.js"></script>
-+<script type="text/javascript" src="/general.js"></script>
-+<script type="text/javascript" src="/popup.js"></script>
-+<script>
-+
-+<% login_state_hook(); %>
-+
-+/* Device Usage page - Libin build */
-+
-+function fmt_rate(b){
-+	if (b >= 1000000) return (b / 1000000).toFixed(2) + ' Mbps';
-+	if (b >= 1000) return Math.round(b / 1000) + ' kbps';
-+	return b > 0 ? Math.round(b) + ' bps' : '0';
-+}
-+
-+function fmt_bytes(b){
-+	if (b >= 1073741824) return (b / 1073741824).toFixed(2) + ' GB';
-+	if (b >= 1048576) return (b / 1048576).toFixed(1) + ' MB';
-+	if (b >= 1024) return Math.round(b / 1024) + ' KB';
-+	return Math.round(b) + ' B';
-+}
-+
-+function esc(s){
-+	return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-+}
-+
-+function bar(v, max, color){
-+	var w = max > 0 ? Math.min(100, Math.round(v * 100 / max)) : 0;
-+	return '<div style="background:#333; height:4px; margin-top:3px; border-radius:2px;"><div style="width:' + w + '%; height:4px; background:' + color + '; border-radius:2px;"></div></div>';
-+}
-+
-+function show_usage(text){
-+	var lines = text.split('\n'), rows = [], i, p, max = 0, h = '', r;
-+	for (i = 0; i < lines.length; i++) {
-+		p = lines[i].split('|');
-+		if (p.length < 7) continue;
-+		rows.push({ip: p[0], mac: p[1], name: p[2], rd: +p[3], ru: +p[4], td: +p[5], tu: +p[6]});
-+	}
-+	rows.sort(function(a, b){ return (b.rd + b.ru) - (a.rd + a.ru) || (b.td + b.tu) - (a.td + a.tu); });
-+	for (i = 0; i < rows.length; i++)
-+		max = Math.max(max, rows[i].rd, rows[i].ru);
-+	if (rows.length == 0)
-+		h = '<tr><td colspan="6" style="text-align:center; color:#888;">No data yet. Device Usage starts about a minute after the router boots.</td></tr>';
-+	for (i = 0; i < rows.length; i++) {
-+		r = rows[i];
-+		h += '<tr>';
-+		h += '<td>' + (r.name != '-' ? esc(r.name) : '-') + '<div style="color:#888; font-size:11px;">' + esc(r.mac) + '</div></td>';
-+		h += '<td>' + esc(r.ip) + '</td>';
-+		h += '<td style="min-width:90px;"><span style="color:#FF9000;">&darr;</span> ' + fmt_rate(r.rd) + bar(r.rd, max, '#FF9000') + '</td>';
-+		h += '<td style="min-width:90px;"><span style="color:#8e44f0;">&uarr;</span> ' + fmt_rate(r.ru) + bar(r.ru, max, '#8e44f0') + '</td>';
-+		h += '<td>' + fmt_bytes(r.td) + '</td>';
-+		h += '<td>' + fmt_bytes(r.tu) + '</td>';
-+		h += '</tr>';
-+	}
-+	document.getElementById('du_rows').innerHTML = h;
-+}
-+
-+function initial(){
-+	show_banner(1);
-+	show_menu(5,8,4);
-+	show_footer();
-+	load_body();
-+	du_subscribe(show_usage);
-+}
-+</script>
-+</head>
-+<body onload="initial();" onunLoad="return unload_body();">
-+
-+<div class="wrapper">
-+    <div class="container-fluid" style="padding-right: 0px">
-+        <div class="row-fluid">
-+            <div class="span3"><center><div id="logo"></div></center></div>
-+            <div class="span9" >
-+                <div id="TopBanner"></div>
-+            </div>
-+        </div>
-+    </div>
-+
-+    <div id="Loading" class="popup_bg"></div>
-+
-+    <iframe name="hidden_frame" id="hidden_frame" src="" width="0" height="0" frameborder="0"></iframe>
-+    <form method="post" name="form" id="ruleForm" action="/start_apply.htm" target="hidden_frame">
-+    <input type="hidden" name="current_page" value="Advanced_DeviceUsage_Content.asp">
-+    <input type="hidden" name="next_page" value="">
-+    <input type="hidden" name="next_host" value="">
-+    <input type="hidden" name="sid_list" value="General;">
-+    <input type="hidden" name="group_id" value="">
-+    <input type="hidden" name="action_mode" value="">
-+    <input type="hidden" name="action_script" value="">
-+
-+    <div class="container-fluid">
-+        <div class="row-fluid">
-+            <div class="span3">
-+                <div class="well sidebar-nav side_nav" style="padding: 0px;">
-+                    <ul id="mainMenu" class="clearfix"></ul>
-+                    <ul class="clearfix">
-+                        <li>
-+                            <div id="subMenu" class="accordion"></div>
-+                        </li>
-+                    </ul>
-+                </div>
-+            </div>
-+
-+            <div class="span9">
-+                <div class="row-fluid">
-+                    <div class="span12">
-+                        <div class="box well grad_colour_dark_blue">
-+                            <h2 class="box_head round_top"><#menu5_10#> - <#menu5_10_4#></h2>
-+                            <div class="round_bottom">
-+                                <div class="row-fluid">
-+                                    <div id="tabMenu" class="submenuBlock"></div>
-+                                    <div class="alert alert-info" style="margin: 10px;">Live internet traffic of every device on your network, updated every 5 seconds. Download is traffic the device receives, upload is traffic it sends. Totals count since the router started.</div>
-+
-+                                    <table width="100%" cellpadding="4" cellspacing="0" class="table">
-+                                        <tr>
-+                                            <th>Device</th>
-+                                            <th>IP</th>
-+                                            <th>Download</th>
-+                                            <th>Upload</th>
-+                                            <th>Total down</th>
-+                                            <th>Total up</th>
-+                                        </tr>
-+                                        <tbody id="du_rows"></tbody>
-+                                    </table>
-+                                </div>
-+                            </div>
-+                        </div>
-+                    </div>
-+                </div>
-+            </div>
-+        </div>
-+    </div>
-+
-+    </form>
-+
-+    <div id="footer"></div>
-+</div>
-+</body>
-+</html>
 diff --git a/trunk/user/www/n56u_ribbon_fixed/device_usage_data.asp b/trunk/user/www/n56u_ribbon_fixed/device_usage_data.asp
 new file mode 100644
 index 0000000..44c7f8a
@@ -1552,304 +1393,6 @@ index f0241f1..5e4b6f8 100755
                              <div class="row-fluid">
                                  <div class="span12">
                                      <div id="statusContainer" width="0" height="0" align="left" valign="top" ></div>
-diff --git a/trunk/user/www/n56u_ribbon_fixed/state.js b/trunk/user/www/n56u_ribbon_fixed/state.js
-index 795a2ee..00e64e2 100755
---- a/trunk/user/www/n56u_ribbon_fixed/state.js
-+++ b/trunk/user/www/n56u_ribbon_fixed/state.js
-@@ -85,6 +85,10 @@ function notify_status_vpn_client(vpnc_state){
- }
- 
- function get_changed_status(){
-+	if (document.hidden) {	// background tab: do not bother the router
-+		id_check_status = setTimeout("get_changed_status();", 5000);
-+		return;
-+	}
- 	var $j = jQuery.noConflict();
- 	$j.ajax({
- 		type: 'get',
-@@ -105,16 +109,20 @@ function get_changed_status(){
- function get_system_info(){
- 	var $j = jQuery.noConflict();
- 	clearTimeout(id_system_info);
-+	if (document.hidden) {	// background tab: do not bother the router
-+		id_system_info = setTimeout('get_system_info()', 3000);
-+		return;
-+	}
- 	$j.ajax({
- 		type: 'get',
- 		url: '/system_status_data.asp',
- 		dataType: 'script',
- 		cache: true,
- 		error: function(xhr) {
--			id_system_info = setTimeout('get_system_info()', 2000);
-+			id_system_info = setTimeout('get_system_info()', 3000);
- 		},
- 		success: function(response) {
--			id_system_info = setTimeout('get_system_info()', 2000);
-+			id_system_info = setTimeout('get_system_info()', 3000);
- 			setSystemInfo(response);
- 		}
- 	});
-@@ -229,6 +237,7 @@ var enabledBtnCommit = '<% nvram_match_x("","nvram_manual", "1", "btn-info"); %>
- 
- // L3 = The third Level of Menu
- function show_banner(L3){
-+	apply_branding();
- 	var bc = '';
- 	var style_2g = 'width:55px;';
- 	var style_5g = 'width:55px;';
-@@ -275,7 +284,7 @@ function show_banner(L3){
- 
- 	// block system info
- 	bc += '<div class="span6">\n';
--	bc += '<div class="well" style="margin-bottom: 0px; height: 109px; padding: 7px 6px 6px 6px;">\n';
-+	bc += '<div class="well" style="margin-bottom: 0px; height: 134px; padding: 7px 6px 6px 6px;">\n';
- 	bc += '<div class="row-fluid">\n';
- 
- 	bc += '<div id="main_info">\n';
-@@ -296,6 +305,10 @@ function show_banner(L3){
- 	bc += '    <td><#SI_Uptime#></td>\n';
- 	bc += '    <td><span id="uptime_info">&nbsp;</span></td>\n';
- 	bc += '  </tr>\n';
-+	bc += '  <tr>\n';
-+	bc += '    <td>WAN speed</td>\n';
-+	bc += '    <td><span id="wan_speed"> -- </span></td>\n';
-+	bc += '  </tr>\n';
- 	bc += '</table>\n';
- 	bc += '</div>\n';
- 
-@@ -347,7 +360,7 @@ function show_banner(L3){
- 
- 	// block firmware version
- 	bc += '<div class="span6">\n';
--	bc += '<div class="well" style="margin-bottom: 0px; height: 109px; padding: 5px 6px 8px 6px;">\n';
-+	bc += '<div class="well" style="margin-bottom: 0px; height: 134px; padding: 5px 6px 8px 6px;">\n';
- 	bc += '<div class="row-fluid">\n';
- 	bc += '<table class="table table-condensed" style="margin-bottom: 0px">\n';
- 	bc += '  <tr>\n';
-@@ -359,6 +372,10 @@ function show_banner(L3){
- 	bc += '    <td><div class="form-inline"><input type="button" id="wifi2_b_g" class="btn btn-mini '+enabledGuest2Gclass+'" style="'+style_2g+'" value='+title_2g+' onclick="go_wguest(2);">&nbsp;<input type="button" id="wifi5_b_g" style="'+style_5g+'" class="btn btn-mini '+enabledGuest5Gclass+'" value='+title_5g+' onclick="go_wguest(5);"></div></td>\n';
- 	bc += '  </tr>\n';
- 	bc += '  <tr>\n';
-+	bc += '    <td>Internet:</td>\n';
-+	bc += '    <td><span id="wan_ip_info"> -- </span></td>\n';
-+	bc += '  </tr>\n';
-+	bc += '  <tr>\n';
- 	bc += '    <td><#General_x_FirmwareVersion_itemname#></td>\n';
- 	bc += '    <td><a href="/Advanced_FirmwareUpgrade_Content.asp"><span id="firmver" class="time"></span></a></td>\n';
- 	bc += '  </tr>\n';
-@@ -390,7 +407,7 @@ tabtitle[3] = new Array("", "<#menu5_3_1#>", "<#menu5_3_3#>", "<#menu5_3_4#>", "
- tabtitle[4] = new Array("", "<#menu5_5_1#>", "<#menu5_5_5#>", "<#menu5_5_2#>", "<#menu5_5_3#>", "<#menu5_5_4#>");
- tabtitle[5] = new Array("", "<#menu5_4_3#>", "<#menu5_4_1#>", "<#menu5_4_2#>", "<#menu5_4_4#>", "<#menu5_4_5#>");
- tabtitle[6] = new Array("", "<#menu5_6_2#>", "<#menu5_6_5#>", "<#menu5_6_1#>", "<#menu5_6_3#>", "<#menu5_6_4#>", "<#menu5_6_6#>");
--tabtitle[7] = new Array("", "<#menu5_10_1#>", "<#menu5_10_2#>", "<#menu5_10_3#>");
-+tabtitle[7] = new Array("", "<#menu5_10_1#>", "<#menu5_10_2#>", "<#menu5_10_3#>", "<#menu5_10_4#>");
- tabtitle[8] = new Array("", "<#menu5_11#>", "<#menu5_12#>", "WAN", "", "", "", "", "", "", "");
- tabtitle[9] = new Array("", "<#menu5_7_2#>", "<#menu5_7_3#>", "<#menu5_7_5#>", "<#menu5_7_6#>", "<#menu5_7_8#>");
- 
-@@ -403,7 +420,7 @@ tablink[3] = new Array("", "Advanced_WAN_Content.asp", "Advanced_IPv6_Content.as
- tablink[4] = new Array("", "Advanced_BasicFirewall_Content.asp", "Advanced_Netfilter_Content.asp", "Advanced_URLFilter_Content.asp", "Advanced_MACFilter_Content.asp", "Advanced_Firewall_Content.asp");
- tablink[5] = new Array("", "Advanced_AiDisk_others.asp", "Advanced_AiDisk_samba.asp", "Advanced_AiDisk_ftp.asp", "Advanced_Modem_others.asp", "Advanced_Printer_others.asp");
- tablink[6] = new Array("", "Advanced_System_Content.asp", "Advanced_Services_Content.asp", "Advanced_OperationMode_Content.asp", "Advanced_FirmwareUpgrade_Content.asp", "Advanced_SettingBackup_Content.asp", "Advanced_Console_Content.asp");
--tablink[7] = new Array("", "Advanced_Tweaks_Content.asp", "Advanced_Scripts_Content.asp", "Advanced_InetDetect_Content.asp");
-+tablink[7] = new Array("", "Advanced_Tweaks_Content.asp", "Advanced_Scripts_Content.asp", "Advanced_InetDetect_Content.asp", "Advanced_DeviceUsage_Content.asp");
- tablink[8] = new Array("", "Main_WStatus2g_Content.asp", "Main_WStatus_Content.asp", "", "", "", "", "", "", "", "");
- tablink[9] = new Array("", "Main_LogStatus_Content.asp", "Main_DHCPStatus_Content.asp", "Main_IPTStatus_Content.asp", "Main_RouteStatus_Content.asp", "Main_CTStatus_Content.asp");
- 
-@@ -537,7 +554,7 @@ function show_menu(L1, L2, L3){
- 		if(menuL2_title[i] == "")
- 			continue;
- 		else if(L2 == i)
--			menu2_code += '<a href="javascript: void(0)" style="color: #005580; font-weight: bold"><i class="icon-minus"></i>&nbsp;&nbsp;'+menuL2_title[i]+'</a>\n';
-+			menu2_code += '<a href="javascript: void(0)" style="color: #c4b5fd; font-weight: bold"><i class="icon-minus"></i>&nbsp;&nbsp;'+menuL2_title[i]+'</a>\n';
- 		else
- 			menu2_code += '<a href="'+menuL2_link[i]+'"><i class="icon-minus"></i>&nbsp;&nbsp;'+menuL2_title[i]+'</a>\n';
- 	}
-@@ -567,12 +584,14 @@ function show_footer(){
- 	footer_code = '<div align="center" class="bottom-image"></div>\n';
- 	footer_code +='<div align="center" class="copyright"><#footer_copyright_desc#></div>\n';
- 	footer_code +='<div align="center">\n';
-+	footer_code +='  <span><b>Smart Router Firmware by Libin</b> &middot; Smart WAN Watchdog &amp; Device Usage</span></br>\n';
- 	footer_code +='  <span>Developed by © Andy Padavan &amp; Linaro &amp; Alxdm &amp; Mahtab &amp; <a href="https://gitlab.com/hadzhioglu/padavan-ng">Hadzhioglu</a></span></br>\n';
- 	footer_code +='  <span>Firmware distribution is prohibited</span></br>\n';
- 	footer_code +='  <span>Non-Commercial Use Only</span></br>\n';
- 	footer_code +='</div>\n';
- 
- 	$("footer").innerHTML = footer_code;
-+	apply_branding();
- 
- 	flash_button();
- }
-@@ -647,6 +666,169 @@ function show_loading_obj(){
- 	id_check_status = setTimeout('hideLoading();', 3000);
- }
- 
-+// Branding + mobile layout (Libin build). Injected from here because
-+// state.js is never cached by the router, while .png/.css are cached for 30 days.
-+var im_theme_css = ''
-+ + 'html{color-scheme:dark}'
-+ + 'body{font-family:"Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.45}'
-+ + '::selection{background:#610ac2;color:#fff}'
-+ + 'input[type=checkbox],input[type=radio]{accent-color:#610ad6}'
-+ + 'a{color:#b69cff;transition:color .15s}'
-+ + 'a:hover{color:#e2d8ff;text-decoration:none}'
-+ + '.wrapper{width:auto;max-width:1240px;padding:0 14px}'
-+ + '.well{border-radius:10px;border:1px solid #343434;box-shadow:0 8px 24px rgba(0,0,0,.35)}'
-+ + '.box h2.box_head,.box.grad_colour_dark_blue h2.box_head{border-radius:10px 10px 0 0;background-image:linear-gradient(90deg,#5b21b6,#7c3aed)!important;font-size:15px;height:38px;line-height:38px;letter-spacing:.3px}'
-+ + '.side_nav ul{border-radius:10px;overflow:hidden}'
-+ + '.side_nav a{color:#c9b8ff!important}'
-+ + '.side_nav li:hover>a,.side_nav li.active>a,.side_nav div.accordion a[style]{color:#fff!important}'
-+ + '.side_nav ul a{font:600 13px/36px "Segoe UI",system-ui,Arial,sans-serif;text-shadow:none;transition:background .15s,color .15s;border-top:0;border-bottom:1px solid #2c2c2c}'
-+ + '.side_nav ul li:hover>a,.side_nav ul li.active>a{background:#2d2442 none!important;color:#fff;text-shadow:none;border-top:0;border-bottom:1px solid #2c2c2c}'
-+ + '.side_nav ul li.active>a{background:#3a2a66 none!important;box-shadow:inset 3px 0 0 #8e44f0}'
-+ + 'li div.accordion a{background:#222;font-size:12px;line-height:32px}'
-+ + '.clearfix li div.accordion a:hover{font-weight:600;background:#2d2442;color:#fff}'
-+ + '.table tr>th:first-child:nth-last-child(n+3),.table tr>th:first-child:nth-last-child(n+3)~th{text-transform:uppercase;font-size:11px;letter-spacing:.6px;color:#a79cc4}'
-+ + '.table tbody tr:hover>td{background:#2a2535}'
-+ + '.btn{border-radius:6px;transition:filter .15s,box-shadow .15s}'
-+ + '.btn:hover{filter:brightness(1.12)}'
-+ + '.btn-primary{background-image:linear-gradient(#7c3aed,#6d28d9)!important;border-color:#5b21b6;box-shadow:0 2px 10px rgba(124,58,237,.35)}'
-+ + 'input[type=text],input[type=password],input.input,select,select.input,textarea{border-radius:6px;transition:border-color .15s,box-shadow .15s}'
-+ + 'input:focus,select:focus,textarea:focus{border-color:#8e44f0!important;box-shadow:0 0 0 3px rgba(142,68,240,.25)!important;outline:0}'
-+ + '.alert{border-radius:8px}'
-+ + '.nav-tabs>li>a{border-radius:8px 8px 0 0;transition:background .15s,color .15s}'
-+ + '.nav-tabs>.active>a,.nav-tabs>.active>a:hover{box-shadow:inset 0 2px 0 #8e44f0}'
-+ + '#footer,.copyright{color:#8a8aa0;font-size:12px}'
-+ + '::-webkit-scrollbar{width:10px;height:10px}'
-+ + '::-webkit-scrollbar-thumb{background:#4b3a7a;border-radius:6px}'
-+ + '::-webkit-scrollbar-track{background:#1b1b1b}';
-+var im_mobile_css = ''
-+ + '@media (max-width: 979px) {'
-+ + ' body { overflow-x: hidden; }'
-+ + ' .wrapper, .syslog_panel { width: auto !important; }'
-+ + ' .wrapper { padding: 0 6px; }'
-+ + ' .container-fluid { padding-left: 0 !important; padding-right: 0 !important; margin-left: 0 !important; }'
-+ + ' .row-fluid [class*="span"] { float: none !important; display: block; width: auto !important; margin-left: 0 !important; }'
-+ + ' #logo { margin: 8px auto !important; }'
-+ + ' .table tr > th:first-child:nth-last-child(2), .table tr > th:first-child:nth-last-child(2) + td { display: block; width: auto !important; }'
-+ + ' .table tr > th:first-child:nth-last-child(2) + td { border-top: 0; padding-top: 0; }'
-+ + ' input, select, textarea { max-width: 100% !important; box-sizing: border-box; }'
-+ + ' .im-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }'
-+ + ' .nav-tabs > li { float: none; display: inline-block; }'
-+ + ' .box_head { font-size: 15px; }'
-+ + '}';
-+
-+// Live WAN info for the status bar. One shared request to /device_usage_data.asp
-+// (a small file written every few seconds by /usr/bin/devusage) feeds both the
-+// status bar and the Device Usage page, so the router only answers one request.
-+var du_subs = [], du_last = '', du_on = 0, wan_live_on = 0;
-+
-+function wan_fmt_rate(bps){
-+	if (bps >= 1000000) return (bps / 1000000).toFixed(1) + ' Mbps';
-+	if (bps >= 1000) return Math.round(bps / 1000) + ' kbps';
-+	return '0 kbps';
-+}
-+
-+function wan_fmt_time(sec){
-+	var d = Math.floor(sec / 86400), h = Math.floor(sec % 86400 / 3600), m = Math.floor(sec % 3600 / 60);
-+	return d ? d + 'd ' + h + 'h' : (h ? h + 'h ' + m + 'm' : m + 'm');
-+}
-+
-+function du_poll(){
-+	var $j = jQuery.noConflict();
-+	if (document.hidden) {
-+		setTimeout(du_poll, 5000);
-+		return;
-+	}
-+	$j.ajax({
-+		type: 'get',
-+		url: '/device_usage_data.asp',
-+		dataType: 'text',
-+		cache: true,
-+		success: function(r){
-+			du_last = r;
-+			for (var i = 0; i < du_subs.length; i++)
-+				du_subs[i](r);
-+		},
-+		complete: function(){ setTimeout(du_poll, 5000); }
-+	});
-+}
-+
-+function du_subscribe(fn){
-+	du_subs.push(fn);
-+	if (du_last)
-+		fn(du_last);
-+	if (!du_on) {
-+		du_on = 1;
-+		du_poll();
-+	}
-+}
-+
-+function wan_live_show(text){
-+	var $j = jQuery.noConflict(), L = text.split('\n'), p = null, i, c = '#d9534f', txt;
-+	for (i = 0; i < L.length; i++) {
-+		if (L[i].charAt(0) == '#') {
-+			p = L[i].split('|');
-+			break;
-+		}
-+	}
-+	if (!p || p.length < 5)
-+		return;
-+	if (new_wan_internet == '1') c = '#5cb85c';
-+	else if (new_wan_internet == '2') c = '#f0ad4e';
-+	txt = '<span style="color:' + c + ';">&#9679;</span> ';
-+	txt += p[1] ? p[1] + ' &middot; ' + wan_fmt_time(+p[2]) : 'not connected';
-+	$j('#wan_ip_info').html(txt);
-+	$j('#wan_speed').html('&darr; ' + wan_fmt_rate(+p[3]) + ' &nbsp;&uarr; ' + wan_fmt_rate(+p[4]));
-+}
-+
-+function apply_branding(){
-+	var d = document, h = d.getElementsByTagName('head')[0], i, t;
-+	if (h && !d.querySelector('meta[name="viewport"]')) {
-+		var m = d.createElement('meta');
-+		m.name = 'viewport';
-+		m.content = 'width=device-width, initial-scale=1';
-+		h.appendChild(m);
-+	}
-+	if (h && !d.getElementById('im_mobile_css')) {
-+		var st = d.createElement('style');
-+		st.id = 'im_mobile_css';
-+		st.appendChild(d.createTextNode(im_theme_css + im_mobile_css));
-+		h.appendChild(st);
-+	}
-+	if (!wan_live_on && d.getElementById('wan_speed')) {
-+		wan_live_on = 1;
-+		du_subscribe(wan_live_show);
-+	}
-+	var lg = d.getElementById('logo');
-+	if (lg)
-+		lg.style.backgroundImage = 'url(/bootstrap/img/libin_logo.png)';
-+	// hide the VPN Server / VPN Client menu entries (not used on this router)
-+	var vm = d.querySelectorAll('#mainMenu a[href*="vpn" i]');
-+	for (i = 0; i < vm.length; i++)
-+		if (vm[i].parentNode)
-+			vm[i].parentNode.style.display = 'none';
-+	// inline light backgrounds (e.g. #E3E3E3 section bars) -> dark, so light text stays readable
-+	var ib = d.querySelectorAll('[style*="background"]'), c;
-+	for (i = 0; i < ib.length; i++) {
-+		c = ib[i].style.backgroundColor.match(/\d+/g);
-+		if (c && c.length >= 3 && Math.min(c[0], c[1], c[2]) >= 205 && Math.max(c[0], c[1], c[2]) - Math.min(c[0], c[1], c[2]) <= 12)
-+			ib[i].style.backgroundColor = '#333';
-+	}
-+	// wide tables (3+ columns) scroll sideways on small screens instead of overflowing
-+	var tbls = d.querySelectorAll('table.table');
-+	for (i = 0; i < tbls.length; i++) {
-+		t = tbls[i];
-+		if (t.parentNode && t.parentNode.className == 'im-scroll')
-+			continue;
-+		var r = t.rows && t.rows.length ? t.rows[t.rows.length > 1 ? 1 : 0] : null;
-+		if (!r || r.cells.length < 3)
-+			continue;
-+		var w = d.createElement('div');
-+		w.className = 'im-scroll';
-+		t.parentNode.insertBefore(w, t);
-+		w.appendChild(t);
-+	}
-+}
-+
- function submit_language(){
- 	if($("select_lang").value != $("preferred_lang").value){
- 		showLoading();
 diff --git a/trunk/user/www/n56u_ribbon_fixed/Advanced_ACL2g_Content.asp b/trunk/user/www/n56u_ribbon_fixed/Advanced_ACL2g_Content.asp
 index e302db3..00cddff 100755
 --- a/trunk/user/www/n56u_ribbon_fixed/Advanced_ACL2g_Content.asp
@@ -2035,3 +1578,552 @@ index 4922a86..10e9dec 100755
  }
  
  function bytesToIEC(bytes, precision){
+diff --git a/trunk/user/www/n56u_ribbon_fixed/Advanced_DeviceUsage_Content.asp b/trunk/user/www/n56u_ribbon_fixed/Advanced_DeviceUsage_Content.asp
+new file mode 100644
+index 0000000..4aa9f00
+--- /dev/null
++++ b/trunk/user/www/n56u_ribbon_fixed/Advanced_DeviceUsage_Content.asp
+@@ -0,0 +1,180 @@
++<!DOCTYPE html>
++<html>
++<head>
++<title><#Web_Title#> - <#menu5_10_4#></title>
++<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
++<meta http-equiv="Pragma" content="no-cache">
++<meta http-equiv="Expires" content="-1">
++
++<link rel="shortcut icon" href="images/favicon.ico">
++<link rel="icon" href="images/favicon.png">
++<link rel="stylesheet" type="text/css" href="/bootstrap/css/bootstrap.min.css">
++<link rel="stylesheet" type="text/css" href="/bootstrap/css/main.css">
++
++<script type="text/javascript" src="/jquery.js"></script>
++<script type="text/javascript" src="/state.js"></script>
++<script type="text/javascript" src="/general.js"></script>
++<script type="text/javascript" src="/popup.js"></script>
++<script>
++
++<% login_state_hook(); %>
++
++/* Device Usage page - Libin build */
++
++function fmt_rate(b){
++	if (b >= 1000000) return (b / 1000000).toFixed(2) + ' Mbps';
++	if (b >= 1000) return Math.round(b / 1000) + ' kbps';
++	return b > 0 ? Math.round(b) + ' bps' : '0';
++}
++
++function fmt_bytes(b){
++	if (b >= 1073741824) return (b / 1073741824).toFixed(2) + ' GB';
++	if (b >= 1048576) return (b / 1048576).toFixed(1) + ' MB';
++	if (b >= 1024) return Math.round(b / 1024) + ' KB';
++	return Math.round(b) + ' B';
++}
++
++function esc(s){
++	return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
++}
++
++function bar(v, max, color){
++	var w = max > 0 ? Math.min(100, Math.round(v * 100 / max)) : 0;
++	return '<div style="background:#333; height:4px; margin-top:3px; border-radius:2px;"><div style="width:' + w + '%; height:4px; background:' + color + '; border-radius:2px;"></div></div>';
++}
++
++var du_data = [];
++
++function show_usage(text){
++	var lines = text.split('\n'), rows = [], i, p, max = 0, h = '', r;
++	for (i = 0; i < lines.length; i++) {
++		p = lines[i].split('|');
++		if (p.length < 7) continue;
++		rows.push({ip: p[0], mac: p[1], name: p[2], rd: +p[3], ru: +p[4], td: +p[5], tu: +p[6]});
++	}
++	rows.sort(function(a, b){ return (b.rd + b.ru) - (a.rd + a.ru) || (b.td + b.tu) - (a.td + a.tu); });
++	du_data = rows;
++	for (i = 0; i < rows.length; i++)
++		max = Math.max(max, rows[i].rd, rows[i].ru);
++	if (rows.length == 0)
++		h = '<tr><td colspan="6" style="text-align:center; color:#888;">No data yet. Device Usage starts about a minute after the router boots.</td></tr>';
++	for (i = 0; i < rows.length; i++) {
++		r = rows[i];
++		h += '<tr>';
++		h += '<td>' + (r.name != '-' ? esc(r.name) : '-') + '<div style="color:#888; font-size:11px;">' + esc(r.mac) + '</div></td>';
++		h += '<td>' + esc(r.ip) + '</td>';
++		h += '<td style="min-width:90px;"><span style="color:#FF9000;">&darr;</span> ' + fmt_rate(r.rd) + bar(r.rd, max, '#FF9000') + '</td>';
++		h += '<td style="min-width:90px;"><span style="color:#8e44f0;">&uarr;</span> ' + fmt_rate(r.ru) + bar(r.ru, max, '#8e44f0') + '</td>';
++		h += '<td>' + fmt_bytes(r.td) + '</td>';
++		h += '<td>' + fmt_bytes(r.tu) + '</td>';
++		h += '</tr>';
++	}
++	document.getElementById('du_rows').innerHTML = h;
++}
++
++function csv_text(v){	// quote text, and stop spreadsheets from running =, +, -, @ as formulas
++	v = String(v);
++	if (/^[=+\-@]/.test(v)) v = "'" + v;
++	return '"' + v.replace(/"/g, '""') + '"';
++}
++
++function export_csv(){
++	var L = ['Name,IP,MAC,Download bps,Upload bps,Total down bytes,Total up bytes'], i, r, b, a;
++	for (i = 0; i < du_data.length; i++) {
++		r = du_data[i];
++		L.push([csv_text(r.name == '-' ? '' : r.name), r.ip, r.mac, Math.round(r.rd), Math.round(r.ru), Math.round(r.td), Math.round(r.tu)].join(','));
++	}
++	b = new Blob([L.join('\r\n') + '\r\n'], {type: 'text/csv'});
++	a = document.createElement('a');
++	a.href = URL.createObjectURL(b);
++	a.download = 'device-usage.csv';
++	document.body.appendChild(a);
++	a.click();
++	document.body.removeChild(a);
++}
++
++function initial(){
++	show_banner(1);
++	show_menu(5,8,4);
++	show_footer();
++	load_body();
++	du_subscribe(show_usage);
++}
++</script>
++</head>
++<body onload="initial();" onunLoad="return unload_body();">
++
++<div class="wrapper">
++    <div class="container-fluid" style="padding-right: 0px">
++        <div class="row-fluid">
++            <div class="span3"><center><div id="logo"></div></center></div>
++            <div class="span9" >
++                <div id="TopBanner"></div>
++            </div>
++        </div>
++    </div>
++
++    <div id="Loading" class="popup_bg"></div>
++
++    <iframe name="hidden_frame" id="hidden_frame" src="" width="0" height="0" frameborder="0"></iframe>
++    <form method="post" name="form" id="ruleForm" action="/start_apply.htm" target="hidden_frame">
++    <input type="hidden" name="current_page" value="Advanced_DeviceUsage_Content.asp">
++    <input type="hidden" name="next_page" value="">
++    <input type="hidden" name="next_host" value="">
++    <input type="hidden" name="sid_list" value="General;">
++    <input type="hidden" name="group_id" value="">
++    <input type="hidden" name="action_mode" value="">
++    <input type="hidden" name="action_script" value="">
++
++    <div class="container-fluid">
++        <div class="row-fluid">
++            <div class="span3">
++                <div class="well sidebar-nav side_nav" style="padding: 0px;">
++                    <ul id="mainMenu" class="clearfix"></ul>
++                    <ul class="clearfix">
++                        <li>
++                            <div id="subMenu" class="accordion"></div>
++                        </li>
++                    </ul>
++                </div>
++            </div>
++
++            <div class="span9">
++                <div class="row-fluid">
++                    <div class="span12">
++                        <div class="box well grad_colour_dark_blue">
++                            <h2 class="box_head round_top"><#menu5_10#> - <#menu5_10_4#></h2>
++                            <div class="round_bottom">
++                                <div class="row-fluid">
++                                    <div id="tabMenu" class="submenuBlock"></div>
++                                    <div class="alert alert-info" style="margin: 10px;">Live internet traffic of every device on your network, updated every 5 seconds. Download is traffic the device receives, upload is traffic it sends. Totals count since the router started.</div>
++
++                                    <table width="100%" cellpadding="4" cellspacing="0" class="table">
++                                        <tr>
++                                            <th>Device</th>
++                                            <th>IP</th>
++                                            <th>Download</th>
++                                            <th>Upload</th>
++                                            <th>Total down</th>
++                                            <th>Total up</th>
++                                        </tr>
++                                        <tbody id="du_rows"></tbody>
++                                    </table>
++                                    <div style="padding: 4px 10px 12px;">
++                                        <input type="button" class="btn" value="Export CSV" onclick="export_csv();"/>
++                                    </div>
++                                </div>
++                            </div>
++                        </div>
++                    </div>
++                </div>
++            </div>
++        </div>
++    </div>
++
++    </form>
++
++    <div id="footer"></div>
++</div>
++</body>
++</html>
+diff --git a/trunk/user/www/n56u_ribbon_fixed/state.js b/trunk/user/www/n56u_ribbon_fixed/state.js
+index 795a2ee..f557316 100755
+--- a/trunk/user/www/n56u_ribbon_fixed/state.js
++++ b/trunk/user/www/n56u_ribbon_fixed/state.js
+@@ -85,6 +85,10 @@ function notify_status_vpn_client(vpnc_state){
+ }
+ 
+ function get_changed_status(){
++	if (document.hidden) {	// background tab: do not bother the router
++		id_check_status = setTimeout("get_changed_status();", 5000);
++		return;
++	}
+ 	var $j = jQuery.noConflict();
+ 	$j.ajax({
+ 		type: 'get',
+@@ -105,16 +109,20 @@ function get_changed_status(){
+ function get_system_info(){
+ 	var $j = jQuery.noConflict();
+ 	clearTimeout(id_system_info);
++	if (document.hidden) {	// background tab: do not bother the router
++		id_system_info = setTimeout('get_system_info()', 3000);
++		return;
++	}
+ 	$j.ajax({
+ 		type: 'get',
+ 		url: '/system_status_data.asp',
+ 		dataType: 'script',
+ 		cache: true,
+ 		error: function(xhr) {
+-			id_system_info = setTimeout('get_system_info()', 2000);
++			id_system_info = setTimeout('get_system_info()', 3000);
+ 		},
+ 		success: function(response) {
+-			id_system_info = setTimeout('get_system_info()', 2000);
++			id_system_info = setTimeout('get_system_info()', 3000);
+ 			setSystemInfo(response);
+ 		}
+ 	});
+@@ -229,6 +237,7 @@ var enabledBtnCommit = '<% nvram_match_x("","nvram_manual", "1", "btn-info"); %>
+ 
+ // L3 = The third Level of Menu
+ function show_banner(L3){
++	apply_branding();
+ 	var bc = '';
+ 	var style_2g = 'width:55px;';
+ 	var style_5g = 'width:55px;';
+@@ -275,7 +284,7 @@ function show_banner(L3){
+ 
+ 	// block system info
+ 	bc += '<div class="span6">\n';
+-	bc += '<div class="well" style="margin-bottom: 0px; height: 109px; padding: 7px 6px 6px 6px;">\n';
++	bc += '<div class="well" style="margin-bottom: 0px; height: 134px; padding: 7px 6px 6px 6px;">\n';
+ 	bc += '<div class="row-fluid">\n';
+ 
+ 	bc += '<div id="main_info">\n';
+@@ -296,6 +305,10 @@ function show_banner(L3){
+ 	bc += '    <td><#SI_Uptime#></td>\n';
+ 	bc += '    <td><span id="uptime_info">&nbsp;</span></td>\n';
+ 	bc += '  </tr>\n';
++	bc += '  <tr>\n';
++	bc += '    <td>WAN speed <span id="wan_spark"></span></td>\n';
++	bc += '    <td><span id="wan_speed"> -- </span></td>\n';
++	bc += '  </tr>\n';
+ 	bc += '</table>\n';
+ 	bc += '</div>\n';
+ 
+@@ -347,7 +360,7 @@ function show_banner(L3){
+ 
+ 	// block firmware version
+ 	bc += '<div class="span6">\n';
+-	bc += '<div class="well" style="margin-bottom: 0px; height: 109px; padding: 5px 6px 8px 6px;">\n';
++	bc += '<div class="well" style="margin-bottom: 0px; height: 134px; padding: 5px 6px 8px 6px;">\n';
+ 	bc += '<div class="row-fluid">\n';
+ 	bc += '<table class="table table-condensed" style="margin-bottom: 0px">\n';
+ 	bc += '  <tr>\n';
+@@ -359,6 +372,10 @@ function show_banner(L3){
+ 	bc += '    <td><div class="form-inline"><input type="button" id="wifi2_b_g" class="btn btn-mini '+enabledGuest2Gclass+'" style="'+style_2g+'" value='+title_2g+' onclick="go_wguest(2);">&nbsp;<input type="button" id="wifi5_b_g" style="'+style_5g+'" class="btn btn-mini '+enabledGuest5Gclass+'" value='+title_5g+' onclick="go_wguest(5);"></div></td>\n';
+ 	bc += '  </tr>\n';
+ 	bc += '  <tr>\n';
++	bc += '    <td>Internet:</td>\n';
++	bc += '    <td><span id="wan_ip_info"> -- </span></td>\n';
++	bc += '  </tr>\n';
++	bc += '  <tr>\n';
+ 	bc += '    <td><#General_x_FirmwareVersion_itemname#></td>\n';
+ 	bc += '    <td><a href="/Advanced_FirmwareUpgrade_Content.asp"><span id="firmver" class="time"></span></a></td>\n';
+ 	bc += '  </tr>\n';
+@@ -390,7 +407,7 @@ tabtitle[3] = new Array("", "<#menu5_3_1#>", "<#menu5_3_3#>", "<#menu5_3_4#>", "
+ tabtitle[4] = new Array("", "<#menu5_5_1#>", "<#menu5_5_5#>", "<#menu5_5_2#>", "<#menu5_5_3#>", "<#menu5_5_4#>");
+ tabtitle[5] = new Array("", "<#menu5_4_3#>", "<#menu5_4_1#>", "<#menu5_4_2#>", "<#menu5_4_4#>", "<#menu5_4_5#>");
+ tabtitle[6] = new Array("", "<#menu5_6_2#>", "<#menu5_6_5#>", "<#menu5_6_1#>", "<#menu5_6_3#>", "<#menu5_6_4#>", "<#menu5_6_6#>");
+-tabtitle[7] = new Array("", "<#menu5_10_1#>", "<#menu5_10_2#>", "<#menu5_10_3#>");
++tabtitle[7] = new Array("", "<#menu5_10_1#>", "<#menu5_10_2#>", "<#menu5_10_3#>", "<#menu5_10_4#>");
+ tabtitle[8] = new Array("", "<#menu5_11#>", "<#menu5_12#>", "WAN", "", "", "", "", "", "", "");
+ tabtitle[9] = new Array("", "<#menu5_7_2#>", "<#menu5_7_3#>", "<#menu5_7_5#>", "<#menu5_7_6#>", "<#menu5_7_8#>");
+ 
+@@ -403,7 +420,7 @@ tablink[3] = new Array("", "Advanced_WAN_Content.asp", "Advanced_IPv6_Content.as
+ tablink[4] = new Array("", "Advanced_BasicFirewall_Content.asp", "Advanced_Netfilter_Content.asp", "Advanced_URLFilter_Content.asp", "Advanced_MACFilter_Content.asp", "Advanced_Firewall_Content.asp");
+ tablink[5] = new Array("", "Advanced_AiDisk_others.asp", "Advanced_AiDisk_samba.asp", "Advanced_AiDisk_ftp.asp", "Advanced_Modem_others.asp", "Advanced_Printer_others.asp");
+ tablink[6] = new Array("", "Advanced_System_Content.asp", "Advanced_Services_Content.asp", "Advanced_OperationMode_Content.asp", "Advanced_FirmwareUpgrade_Content.asp", "Advanced_SettingBackup_Content.asp", "Advanced_Console_Content.asp");
+-tablink[7] = new Array("", "Advanced_Tweaks_Content.asp", "Advanced_Scripts_Content.asp", "Advanced_InetDetect_Content.asp");
++tablink[7] = new Array("", "Advanced_Tweaks_Content.asp", "Advanced_Scripts_Content.asp", "Advanced_InetDetect_Content.asp", "Advanced_DeviceUsage_Content.asp");
+ tablink[8] = new Array("", "Main_WStatus2g_Content.asp", "Main_WStatus_Content.asp", "", "", "", "", "", "", "", "");
+ tablink[9] = new Array("", "Main_LogStatus_Content.asp", "Main_DHCPStatus_Content.asp", "Main_IPTStatus_Content.asp", "Main_RouteStatus_Content.asp", "Main_CTStatus_Content.asp");
+ 
+@@ -537,7 +554,7 @@ function show_menu(L1, L2, L3){
+ 		if(menuL2_title[i] == "")
+ 			continue;
+ 		else if(L2 == i)
+-			menu2_code += '<a href="javascript: void(0)" style="color: #005580; font-weight: bold"><i class="icon-minus"></i>&nbsp;&nbsp;'+menuL2_title[i]+'</a>\n';
++			menu2_code += '<a href="javascript: void(0)" style="color: #c4b5fd; font-weight: bold"><i class="icon-minus"></i>&nbsp;&nbsp;'+menuL2_title[i]+'</a>\n';
+ 		else
+ 			menu2_code += '<a href="'+menuL2_link[i]+'"><i class="icon-minus"></i>&nbsp;&nbsp;'+menuL2_title[i]+'</a>\n';
+ 	}
+@@ -567,12 +584,14 @@ function show_footer(){
+ 	footer_code = '<div align="center" class="bottom-image"></div>\n';
+ 	footer_code +='<div align="center" class="copyright"><#footer_copyright_desc#></div>\n';
+ 	footer_code +='<div align="center">\n';
++	footer_code +='  <span><b>Smart Router Firmware by Libin</b> &middot; Smart WAN Watchdog &amp; Device Usage</span></br>\n';
+ 	footer_code +='  <span>Developed by © Andy Padavan &amp; Linaro &amp; Alxdm &amp; Mahtab &amp; <a href="https://gitlab.com/hadzhioglu/padavan-ng">Hadzhioglu</a></span></br>\n';
+ 	footer_code +='  <span>Firmware distribution is prohibited</span></br>\n';
+ 	footer_code +='  <span>Non-Commercial Use Only</span></br>\n';
+ 	footer_code +='</div>\n';
+ 
+ 	$("footer").innerHTML = footer_code;
++	apply_branding();
+ 
+ 	flash_button();
+ }
+@@ -647,6 +666,234 @@ function show_loading_obj(){
+ 	id_check_status = setTimeout('hideLoading();', 3000);
+ }
+ 
++// Branding + mobile layout (Libin build). Injected from here because
++// state.js is never cached by the router, while .png/.css are cached for 30 days.
++var im_theme_css = ''
++ + 'html{color-scheme:dark}'
++ + 'body{font-family:"Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.45}'
++ + '::selection{background:#610ac2;color:#fff}'
++ + 'input[type=checkbox],input[type=radio]{accent-color:#610ad6}'
++ + 'a{color:#b69cff;transition:color .15s}'
++ + 'a:hover{color:#e2d8ff;text-decoration:none}'
++ + '.wrapper{width:auto;max-width:1240px;padding:0 14px}'
++ + '.well{border-radius:10px;border:1px solid #343434;box-shadow:0 8px 24px rgba(0,0,0,.35)}'
++ + '.box h2.box_head,.box.grad_colour_dark_blue h2.box_head{border-radius:10px 10px 0 0;background-image:linear-gradient(90deg,#5b21b6,#7c3aed)!important;font-size:15px;height:38px;line-height:38px;letter-spacing:.3px}'
++ + '.side_nav ul{border-radius:10px;overflow:hidden}'
++ + '.side_nav a{color:#c9b8ff!important}'
++ + '.side_nav li:hover>a,.side_nav li.active>a,.side_nav div.accordion a[style]{color:#fff!important}'
++ + '.side_nav ul a{font:600 13px/36px "Segoe UI",system-ui,Arial,sans-serif;text-shadow:none;transition:background .15s,color .15s;border-top:0;border-bottom:1px solid #2c2c2c}'
++ + '.side_nav ul li:hover>a,.side_nav ul li.active>a{background:#2d2442 none!important;color:#fff;text-shadow:none;border-top:0;border-bottom:1px solid #2c2c2c}'
++ + '.side_nav ul li.active>a{background:#3a2a66 none!important;box-shadow:inset 3px 0 0 #8e44f0}'
++ + 'li div.accordion a{background:#222;font-size:12px;line-height:32px}'
++ + '.clearfix li div.accordion a:hover{font-weight:600;background:#2d2442;color:#fff}'
++ + '.table tr>th:first-child:nth-last-child(n+3),.table tr>th:first-child:nth-last-child(n+3)~th{text-transform:uppercase;font-size:11px;letter-spacing:.6px;color:#a79cc4}'
++ + '.table tbody tr:hover>td{background:#2a2535}'
++ + '.btn{border-radius:6px;transition:filter .15s,box-shadow .15s}'
++ + '.btn:hover{filter:brightness(1.12)}'
++ + '.btn-primary{background-image:linear-gradient(#7c3aed,#6d28d9)!important;border-color:#5b21b6;box-shadow:0 2px 10px rgba(124,58,237,.35)}'
++ + 'input[type=text],input[type=password],input.input,select,select.input,textarea{border-radius:6px;transition:border-color .15s,box-shadow .15s}'
++ + 'input:focus,select:focus,textarea:focus{border-color:#8e44f0!important;box-shadow:0 0 0 3px rgba(142,68,240,.25)!important;outline:0}'
++ + '.alert{border-radius:8px}'
++ + '.nav-tabs>li>a{border-radius:8px 8px 0 0;transition:background .15s,color .15s}'
++ + '.nav-tabs>.active>a,.nav-tabs>.active>a:hover{box-shadow:inset 0 2px 0 #8e44f0}'
++ + 'body{background-color:#141414!important;background-image:url(data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20width=%22160%22%20height=%22160%22%20viewBox=%220%200%20160%20160%22%3E%3Cg%20fill=%22none%22%20stroke=%22%23a78bfa%22%20stroke-opacity=%22.16%22%3E%3Cpath%20d=%22M20%2030L70%2060L120%2025M70%2060L60%20120L130%20110M60%20120L25%20140%22/%3E%3C/g%3E%3Cg%20fill=%22%23a78bfa%22%20fill-opacity=%22.3%22%3E%3Ccircle%20cx=%2220%22%20cy=%2230%22%20r=%222.5%22/%3E%3Ccircle%20cx=%2270%22%20cy=%2260%22%20r=%223%22/%3E%3Ccircle%20cx=%22120%22%20cy=%2225%22%20r=%222.5%22/%3E%3Ccircle%20cx=%2260%22%20cy=%22120%22%20r=%223%22/%3E%3Ccircle%20cx=%22130%22%20cy=%22110%22%20r=%222.5%22/%3E%3Ccircle%20cx=%2225%22%20cy=%22140%22%20r=%222%22/%3E%3C/g%3E%3C/svg%3E),radial-gradient(900px 520px at 90% -6%,rgba(124,58,237,.22),transparent 62%)!important;background-size:160px 160px,auto!important;background-attachment:fixed!important}'
++ + '#footer,.copyright{color:#8a8aa0;font-size:12px}'
++ + '::-webkit-scrollbar{width:10px;height:10px}'
++ + '::-webkit-scrollbar-thumb{background:#4b3a7a;border-radius:6px}'
++ + '::-webkit-scrollbar-track{background:#1b1b1b}';
++var im_mobile_css = ''
++ + '@media (max-width: 979px) {'
++ + ' body { overflow-x: hidden; }'
++ + ' .wrapper, .syslog_panel { width: auto !important; }'
++ + ' .wrapper { padding: 0 6px; }'
++ + ' .container-fluid { padding-left: 0 !important; padding-right: 0 !important; margin-left: 0 !important; }'
++ + ' .row-fluid [class*="span"] { float: none !important; display: block; width: auto !important; margin-left: 0 !important; }'
++ + ' #logo { margin: 8px auto !important; }'
++ + ' .table tr > th:first-child:nth-last-child(2), .table tr > th:first-child:nth-last-child(2) + td { display: block; width: auto !important; }'
++ + ' .table tr > th:first-child:nth-last-child(2) + td { border-top: 0; padding-top: 0; }'
++ + ' input, select, textarea { max-width: 100% !important; box-sizing: border-box; }'
++ + ' .im-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }'
++ + ' .nav-tabs > li { float: none; display: inline-block; }'
++ + ' .box_head { font-size: 15px; }'
++ + ' body { background-attachment: scroll !important; }'
++ + '}';
++
++// Live WAN info for the status bar. One shared request to /device_usage_data.asp
++// (a small file written every few seconds by /usr/bin/devusage) feeds both the
++// status bar and the Device Usage page, so the router only answers one request.
++var du_subs = [], du_last = '', du_on = 0, wan_live_on = 0, wan_hd = [], wan_hu = [], du_title = '';
++
++function wan_fmt_rate(bps){
++	if (bps >= 1000000) return (bps / 1000000).toFixed(1) + ' Mbps';
++	if (bps >= 1000) return Math.round(bps / 1000) + ' kbps';
++	return '0 kbps';
++}
++
++function wan_fmt_time(sec){
++	var d = Math.floor(sec / 86400), h = Math.floor(sec % 86400 / 3600), m = Math.floor(sec % 3600 / 60);
++	return d ? d + 'd ' + h + 'h' : (h ? h + 'h ' + m + 'm' : m + 'm');
++}
++
++function du_poll(){
++	var $j = jQuery.noConflict();
++	if (document.hidden) {
++		setTimeout(du_poll, 5000);
++		return;
++	}
++	$j.ajax({
++		type: 'get',
++		url: '/device_usage_data.asp',
++		dataType: 'text',
++		cache: true,
++		success: function(r){
++			du_last = r;
++			for (var i = 0; i < du_subs.length; i++)
++				du_subs[i](r);
++		},
++		complete: function(){ setTimeout(du_poll, 5000); }
++	});
++}
++
++function du_subscribe(fn){
++	du_subs.push(fn);
++	if (du_last)
++		fn(du_last);
++	if (!du_on) {
++		du_on = 1;
++		du_poll();
++	}
++}
++
++function wan_spark(){	// tiny 2-minute graph: download orange, upload purple
++	var W = 60, H = 14, n = wan_hd.length, mx = 1, i;
++	if (n < 2)
++		return '';
++	for (i = 0; i < n; i++)
++		mx = Math.max(mx, wan_hd[i], wan_hu[i]);
++	function pts(a){
++		var r = [], k;
++		for (k = 0; k < a.length; k++)
++			r.push((k * W / 23).toFixed(1) + ',' + (H - 1 - a[k] * (H - 2) / mx).toFixed(1));
++		return r.join(' ');
++	}
++	return '<svg width="' + W + '" height="' + H + '" style="vertical-align:middle; margin-left:6px;"><polyline fill="none" stroke="#FF9000" stroke-width="1.5" points="' + pts(wan_hd) + '"/><polyline fill="none" stroke="#8e44f0" stroke-width="1.5" points="' + pts(wan_hu) + '"/></svg>';
++}
++
++function wan_live_show(text){
++	var $j = jQuery.noConflict(), L = text.split('\n'), p = null, i, c = '#d9534f', txt;
++	for (i = 0; i < L.length; i++) {
++		if (L[i].charAt(0) == '#') {
++			p = L[i].split('|');
++			break;
++		}
++	}
++	if (!p || p.length < 5)
++		return;
++	if (new_wan_internet == '1') c = '#5cb85c';
++	else if (new_wan_internet == '2') c = '#f0ad4e';
++	txt = '<span style="color:' + c + ';">&#9679;</span> ';
++	txt += p[1] ? p[1] + ' &middot; ' + wan_fmt_time(+p[2]) : 'not connected';
++	$j('#wan_ip_info').html(txt);
++	wan_hd.push(+p[3]);
++	wan_hu.push(+p[4]);
++	if (wan_hd.length > 24) {
++		wan_hd.shift();
++		wan_hu.shift();
++	}
++	$j('#wan_speed').html('&darr; ' + wan_fmt_rate(+p[3]) + ' &nbsp;&uarr; ' + wan_fmt_rate(+p[4]));
++	$j('#wan_spark').html(wan_spark());
++	if (!du_title)
++		du_title = document.title;
++	document.title = '\u2193' + wan_fmt_rate(+p[3]) + ' \u2191' + wan_fmt_rate(+p[4]) + ' \u00b7 ' + du_title;
++}
++
++// Notices at the top of every page: default passwords, wrong router clock.
++var pw_default = '<% nvram_match_x("", "http_passwd", "admin", "1"); %>';
++var psk_default = '<% nvram_match_x("", "rt_wpa_psk", "1234567890", "1"); %>';
++
++function show_notices(){
++	var d = document, box, msgs = [], t, mins;
++	if (!d.body || d.getElementById('im_notice'))
++		return;
++	try {
++		if (sessionStorage.getItem('im_notice_off'))
++			return;
++	} catch (e) {}
++	if (pw_default == '1')
++		msgs.push('The admin password is still the default. <a href="Advanced_System_Content.asp">Change it</a>.');
++	if (psk_default == '1')
++		msgs.push('The Wi-Fi password is still the default. <a href="Advanced_Wireless2g_Content.asp">Change it</a>.');
++	t = Date.parse(uptimeStr.substring(0, 31));
++	if (!isNaN(t)) {
++		mins = Math.abs(new Date().getTime() - t) / 60000;
++		if (mins > 10)
++			msgs.push('The router clock is off by ' + (mins >= 1440 ? Math.round(mins / 1440) + ' day(s)' : Math.round(mins) + ' min') + '. Logs and time schedules will be wrong until it syncs. <a href="Advanced_System_Content.asp">Check the time settings</a>.');
++	}
++	if (!msgs.length)
++		return;
++	box = d.createElement('div');
++	box.id = 'im_notice';
++	box.style.cssText = 'max-width:1212px; margin:8px auto 0; padding:8px 14px; background:#3a3320; border:1px solid #5a4a20; border-radius:8px; color:#e6c07a; font-size:13px; line-height:1.6;';
++	box.innerHTML = '<span id="im_notice_x" title="Hide" style="float:right; cursor:pointer; padding-left:12px;">&#10005;</span>' + msgs.join('<br>');
++	box.onclick = function(e){
++		if (e.target.id == 'im_notice_x') {
++			box.style.display = 'none';
++			try { sessionStorage.setItem('im_notice_off', '1'); } catch (x) {}
++		}
++	};
++	d.body.insertBefore(box, d.body.firstChild);
++}
++
++function apply_branding(){
++	var d = document, h = d.getElementsByTagName('head')[0], i, t;
++	if (h && !d.querySelector('meta[name="viewport"]')) {
++		var m = d.createElement('meta');
++		m.name = 'viewport';
++		m.content = 'width=device-width, initial-scale=1';
++		h.appendChild(m);
++	}
++	if (h && !d.getElementById('im_mobile_css')) {
++		var st = d.createElement('style');
++		st.id = 'im_mobile_css';
++		st.appendChild(d.createTextNode(im_theme_css + im_mobile_css));
++		h.appendChild(st);
++	}
++	if (!wan_live_on && d.getElementById('wan_speed')) {
++		wan_live_on = 1;
++		du_subscribe(wan_live_show);
++	}
++	show_notices();
++	var lg = d.getElementById('logo');
++	if (lg)
++		lg.style.backgroundImage = 'url(/bootstrap/img/libin_logo.png)';
++	// hide the VPN Server / VPN Client menu entries (not used on this router)
++	var vm = d.querySelectorAll('#mainMenu a[href*="vpn" i]');
++	for (i = 0; i < vm.length; i++)
++		if (vm[i].parentNode)
++			vm[i].parentNode.style.display = 'none';
++	// inline light backgrounds (e.g. #E3E3E3 section bars) -> dark, so light text stays readable
++	var ib = d.querySelectorAll('[style*="background"]'), c;
++	for (i = 0; i < ib.length; i++) {
++		c = ib[i].style.backgroundColor.match(/\d+/g);
++		if (c && c.length >= 3 && Math.min(c[0], c[1], c[2]) >= 205 && Math.max(c[0], c[1], c[2]) - Math.min(c[0], c[1], c[2]) <= 12)
++			ib[i].style.backgroundColor = '#333';
++	}
++	// wide tables (3+ columns) scroll sideways on small screens instead of overflowing
++	var tbls = d.querySelectorAll('table.table');
++	for (i = 0; i < tbls.length; i++) {
++		t = tbls[i];
++		if (t.parentNode && t.parentNode.className == 'im-scroll')
++			continue;
++		var r = t.rows && t.rows.length ? t.rows[t.rows.length > 1 ? 1 : 0] : null;
++		if (!r || r.cells.length < 3)
++			continue;
++		var w = d.createElement('div');
++		w.className = 'im-scroll';
++		t.parentNode.insertBefore(w, t);
++		w.appendChild(t);
++	}
++}
++
+ function submit_language(){
+ 	if($("select_lang").value != $("preferred_lang").value){
+ 		showLoading();
