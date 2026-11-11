@@ -1580,10 +1580,10 @@ index 4922a86..10e9dec 100755
  function bytesToIEC(bytes, precision){
 diff --git a/trunk/user/www/n56u_ribbon_fixed/Advanced_DeviceUsage_Content.asp b/trunk/user/www/n56u_ribbon_fixed/Advanced_DeviceUsage_Content.asp
 new file mode 100644
-index 0000000..4aa9f00
+index 0000000..e8e6fdd
 --- /dev/null
 +++ b/trunk/user/www/n56u_ribbon_fixed/Advanced_DeviceUsage_Content.asp
-@@ -0,0 +1,180 @@
+@@ -0,0 +1,236 @@
 +<!DOCTYPE html>
 +<html>
 +<head>
@@ -1629,26 +1629,70 @@ index 0000000..4aa9f00
 +	return '<div style="background:#333; height:4px; margin-top:3px; border-radius:2px;"><div style="width:' + w + '%; height:4px; background:' + color + '; border-radius:2px;"></div></div>';
 +}
 +
-+var du_data = [];
++var du_data = [], du_raw = '', du_key = 'rate', du_dir = -1, du_tt = 0;
 +
-+function show_usage(text){
-+	var lines = text.split('\n'), rows = [], i, p, max = 0, h = '', r;
++function sort_by(k){
++	if (du_key == k)
++		du_dir = -du_dir;
++	else {
++		du_key = k;
++		du_dir = (k == 'name' || k == 'ip') ? 1 : -1;
++	}
++	render_usage();
++}
++
++function du_val(r, k){
++	if (k == 'rate') return r.rd + r.ru;
++	if (k == 'name') return (r.name == '-' ? '~' : r.name).toLowerCase();
++	if (k == 'ip') return r.ip.split('.').reduce(function(a, x){ return a * 256 + (+x || 0); }, 0);
++	if (k == 'down') return r.rd;
++	if (k == 'up') return r.ru;
++	if (k == 'td') return r.td;
++	return r.tu;
++}
++
++function du_toast(m){
++	var e = document.getElementById('du_toast');
++	e.textContent = m;
++	e.style.opacity = 1;
++	clearTimeout(du_tt);
++	du_tt = setTimeout(function(){ e.style.opacity = 0; }, 1400);
++}
++
++function copy_text(v){
++	var t = document.createElement('textarea'), ok = false;
++	t.value = v;
++	t.style.cssText = 'position:fixed; left:-999px; top:0;';
++	document.body.appendChild(t);
++	t.select();
++	try { ok = document.execCommand('copy'); } catch (e) {}
++	document.body.removeChild(t);
++	du_toast(ok ? 'Copied ' + v : 'Copy failed');
++}
++
++function render_usage(){
++	var lines = du_raw.split('\n'), rows = [], i, p, max = 0, h = '', r, f = document.getElementById('du_filter').value.toLowerCase(), k, cols;
 +	for (i = 0; i < lines.length; i++) {
 +		p = lines[i].split('|');
 +		if (p.length < 7) continue;
-+		rows.push({ip: p[0], mac: p[1], name: p[2], rd: +p[3], ru: +p[4], td: +p[5], tu: +p[6]});
++		r = {ip: p[0], mac: p[1], name: p[2], rd: +p[3], ru: +p[4], td: +p[5], tu: +p[6]};
++		if (f && (r.name + ' ' + r.ip + ' ' + r.mac).toLowerCase().indexOf(f) < 0) continue;
++		rows.push(r);
 +	}
-+	rows.sort(function(a, b){ return (b.rd + b.ru) - (a.rd + a.ru) || (b.td + b.tu) - (a.td + a.tu); });
++	rows.sort(function(a, b){
++		var x = du_val(a, du_key), y = du_val(b, du_key);
++		return (x < y ? -1 : (x > y ? 1 : 0)) * du_dir || (b.td + b.tu) - (a.td + a.tu);
++	});
 +	du_data = rows;
 +	for (i = 0; i < rows.length; i++)
 +		max = Math.max(max, rows[i].rd, rows[i].ru);
 +	if (rows.length == 0)
-+		h = '<tr><td colspan="6" style="text-align:center; color:#888;">No data yet. Device Usage starts about a minute after the router boots.</td></tr>';
++		h = '<tr><td colspan="6" style="text-align:center; color:#888;">' + (f ? 'No device matches the filter.' : 'No data yet. Device Usage starts about a minute after the router boots.') + '</td></tr>';
 +	for (i = 0; i < rows.length; i++) {
 +		r = rows[i];
 +		h += '<tr>';
-+		h += '<td>' + (r.name != '-' ? esc(r.name) : '-') + '<div style="color:#888; font-size:11px;">' + esc(r.mac) + '</div></td>';
-+		h += '<td>' + esc(r.ip) + '</td>';
++		h += '<td>' + (r.name != '-' ? esc(r.name) : '-') + '<div style="color:#888; font-size:11px; cursor:copy;" title="Click to copy" onclick="copy_text(\'' + esc(r.mac) + '\');">' + esc(r.mac) + '</div></td>';
++		h += '<td style="cursor:copy;" title="Click to copy" onclick="copy_text(\'' + esc(r.ip) + '\');">' + esc(r.ip) + '</td>';
 +		h += '<td style="min-width:90px;"><span style="color:#FF9000;">&darr;</span> ' + fmt_rate(r.rd) + bar(r.rd, max, '#FF9000') + '</td>';
 +		h += '<td style="min-width:90px;"><span style="color:#8e44f0;">&uarr;</span> ' + fmt_rate(r.ru) + bar(r.ru, max, '#8e44f0') + '</td>';
 +		h += '<td>' + fmt_bytes(r.td) + '</td>';
@@ -1656,6 +1700,14 @@ index 0000000..4aa9f00
 +		h += '</tr>';
 +	}
 +	document.getElementById('du_rows').innerHTML = h;
++	cols = {name: 'Device', ip: 'IP', down: 'Download', up: 'Upload', td: 'Total down', tu: 'Total up'};
++	for (k in cols)
++		document.getElementById('th_' + k).innerHTML = cols[k] + (du_key == k ? (du_dir > 0 ? ' &#9650;' : ' &#9660;') : '');
++}
++
++function show_usage(text){
++	du_raw = text;
++	render_usage();
 +}
 +
 +function csv_text(v){	// quote text, and stop spreadsheets from running =, +, -, @ as formulas
@@ -1735,14 +1787,17 @@ index 0000000..4aa9f00
 +                                    <div id="tabMenu" class="submenuBlock"></div>
 +                                    <div class="alert alert-info" style="margin: 10px;">Live internet traffic of every device on your network, updated every 5 seconds. Download is traffic the device receives, upload is traffic it sends. Totals count since the router started.</div>
 +
++                                    <div style="padding: 0 10px 8px;">
++                                        <input type="text" id="du_filter" class="input" style="width: 260px;" placeholder="Filter by name, IP or MAC" oninput="render_usage();"/>
++                                    </div>
 +                                    <table width="100%" cellpadding="4" cellspacing="0" class="table">
 +                                        <tr>
-+                                            <th>Device</th>
-+                                            <th>IP</th>
-+                                            <th>Download</th>
-+                                            <th>Upload</th>
-+                                            <th>Total down</th>
-+                                            <th>Total up</th>
++                                            <th id="th_name" style="cursor:pointer;" onclick="sort_by('name');">Device</th>
++                                            <th id="th_ip" style="cursor:pointer;" onclick="sort_by('ip');">IP</th>
++                                            <th id="th_down" style="cursor:pointer;" onclick="sort_by('down');">Download</th>
++                                            <th id="th_up" style="cursor:pointer;" onclick="sort_by('up');">Upload</th>
++                                            <th id="th_td" style="cursor:pointer;" onclick="sort_by('td');">Total down</th>
++                                            <th id="th_tu" style="cursor:pointer;" onclick="sort_by('tu');">Total up</th>
 +                                        </tr>
 +                                        <tbody id="du_rows"></tbody>
 +                                    </table>
@@ -1760,12 +1815,13 @@ index 0000000..4aa9f00
 +
 +    </form>
 +
++    <div id="du_toast" style="position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:#3a2a66; color:#fff; padding:8px 16px; border-radius:20px; font-size:13px; opacity:0; transition:opacity .25s; pointer-events:none; z-index:9999;"></div>
 +    <div id="footer"></div>
 +</div>
 +</body>
 +</html>
 diff --git a/trunk/user/www/n56u_ribbon_fixed/state.js b/trunk/user/www/n56u_ribbon_fixed/state.js
-index 795a2ee..f557316 100755
+index 795a2ee..f777550 100755
 --- a/trunk/user/www/n56u_ribbon_fixed/state.js
 +++ b/trunk/user/www/n56u_ribbon_fixed/state.js
 @@ -85,6 +85,10 @@ function notify_status_vpn_client(vpnc_state){
@@ -1877,11 +1933,12 @@ index 795a2ee..f557316 100755
  		else
  			menu2_code += '<a href="'+menuL2_link[i]+'"><i class="icon-minus"></i>&nbsp;&nbsp;'+menuL2_title[i]+'</a>\n';
  	}
-@@ -567,12 +584,14 @@ function show_footer(){
+@@ -567,12 +584,15 @@ function show_footer(){
  	footer_code = '<div align="center" class="bottom-image"></div>\n';
  	footer_code +='<div align="center" class="copyright"><#footer_copyright_desc#></div>\n';
  	footer_code +='<div align="center">\n';
 +	footer_code +='  <span><b>Smart Router Firmware by Libin</b> &middot; Smart WAN Watchdog &amp; Device Usage</span></br>\n';
++	footer_code +='  <span><a href="javascript:im_find_open();">Find a setting</a> (Ctrl+K)</span></br>\n';
  	footer_code +='  <span>Developed by © Andy Padavan &amp; Linaro &amp; Alxdm &amp; Mahtab &amp; <a href="https://gitlab.com/hadzhioglu/padavan-ng">Hadzhioglu</a></span></br>\n';
  	footer_code +='  <span>Firmware distribution is prohibited</span></br>\n';
  	footer_code +='  <span>Non-Commercial Use Only</span></br>\n';
@@ -1892,7 +1949,7 @@ index 795a2ee..f557316 100755
  
  	flash_button();
  }
-@@ -647,6 +666,234 @@ function show_loading_obj(){
+@@ -647,6 +667,337 @@ function show_loading_obj(){
  	id_check_status = setTimeout('hideLoading();', 3000);
  }
  
@@ -2037,6 +2094,105 @@ index 795a2ee..f557316 100755
 +	document.title = '\u2193' + wan_fmt_rate(+p[3]) + ' \u2191' + wan_fmt_rate(+p[4]) + ' \u00b7 ' + du_title;
 +}
 +
++// Quick find: press Ctrl+K (or /) to search every settings page by name.
++var im_groups = ['Wireless 2.4GHz', 'Wireless 5GHz', 'LAN', 'WAN', 'Firewall', 'USB Application', 'Administration', 'Customization', 'Wireless & Wired Info', 'System Log'];
++var im_find_on = 0, im_find_sel = 0, im_find_list = [], im_find_hooked = 0;
++
++function im_pages(){
++	var L = [], g, t, i;
++	for (i = 1; i < menuL1_title.length; i++) {
++		if (menuL1_link[i] == 'as.asp' || /vpn/i.test(menuL1_link[i]))
++			continue;
++		L.push({t: menuL1_title[i], s: '', u: menuL1_link[i]});
++	}
++	for (g = 0; g < tabtitle.length; g++) {
++		if (g == 1 && !support_5g_radio())
++			continue;
++		for (t = 1; t < tabtitle[g].length; t++)
++			if (tabtitle[g][t] && tablink[g][t])
++				L.push({t: tabtitle[g][t], s: im_groups[g] || '', u: tablink[g][t]});
++	}
++	return L;
++}
++
++function im_find_draw(q){
++	var all = im_pages(), words = q.toLowerCase().split(/\s+/).filter(function(w){ return w; }), out = [], i, k, ok, h = '', r;
++	for (i = 0; i < all.length; i++) {
++		k = (all[i].s + ' ' + all[i].t).toLowerCase();
++		ok = true;
++		for (r = 0; r < words.length; r++)
++			if (k.indexOf(words[r]) < 0)
++				ok = false;
++		if (ok)
++			out.push(all[i]);
++	}
++	im_find_list = out.slice(0, 9);
++	if (im_find_sel >= im_find_list.length)
++		im_find_sel = 0;
++	for (i = 0; i < im_find_list.length; i++) {
++		r = im_find_list[i];
++		h += '<div class="im_find_row" data-i="' + i + '" style="padding:8px 14px; cursor:pointer; border-left:3px solid ' + (i == im_find_sel ? '#8e44f0' : 'transparent') + '; background:' + (i == im_find_sel ? '#2d2442' : 'transparent') + ';">' + r.t + (r.s ? ' <span style="color:#8a8aa0; font-size:12px;">&middot; ' + r.s + '</span>' : '') + '</div>';
++	}
++	if (!h)
++		h = '<div style="padding:10px 14px; color:#8a8aa0;">No page found</div>';
++	document.getElementById('im_find_list').innerHTML = h;
++}
++
++function im_find_close(){
++	var o = document.getElementById('im_find');
++	if (o)
++		o.parentNode.removeChild(o);
++	im_find_on = 0;
++}
++
++function im_find_open(){
++	var d = document, o, inp;
++	if (im_find_on || !d.body)
++		return;
++	im_find_on = 1;
++	im_find_sel = 0;
++	o = d.createElement('div');
++	o.id = 'im_find';
++	o.style.cssText = 'position:fixed; left:0; top:0; right:0; bottom:0; z-index:9998; background:rgba(0,0,0,.65); padding-top:12vh;';
++	o.innerHTML = '<div style="width:520px; max-width:92%; margin:0 auto; background:#262626; border:1px solid #4b3a7a; border-radius:10px; box-shadow:0 20px 50px rgba(0,0,0,.6); overflow:hidden;"><input id="im_find_in" type="text" placeholder="Find a settings page..." autocomplete="off" style="width:100%; box-sizing:border-box; margin:0; border:0; border-bottom:1px solid #3a3a3a; border-radius:0; background:#1b1b1b; color:#eee; padding:12px 14px; font-size:15px; outline:0;"><div id="im_find_list" style="max-height:60vh; overflow:auto;"></div><div style="padding:6px 14px; color:#777; font-size:11px; border-top:1px solid #333;">Enter = open &middot; Esc = close</div></div>';
++	d.body.appendChild(o);
++	inp = d.getElementById('im_find_in');
++	im_find_draw('');
++	inp.focus();
++	inp.oninput = function(){ im_find_sel = 0; im_find_draw(inp.value); };
++	o.onclick = function(e){
++		var t = e.target;
++		while (t && t != o && !t.getAttribute('data-i'))
++			t = t.parentNode;
++		if (t && t.getAttribute && t.getAttribute('data-i') !== null && t != o)
++			location.href = im_find_list[+t.getAttribute('data-i')].u;
++		else if (e.target == o)
++			im_find_close();
++	};
++}
++
++function im_find_keys(e){
++	var tg = e.target && e.target.tagName ? e.target.tagName.toLowerCase() : '';
++	if (im_find_on) {
++		if (e.keyCode == 27)
++			im_find_close();
++		else if (e.keyCode == 40 || e.keyCode == 38) {
++			im_find_sel = (im_find_sel + (e.keyCode == 40 ? 1 : im_find_list.length - 1)) % Math.max(1, im_find_list.length);
++			im_find_draw(document.getElementById('im_find_in').value);
++			e.preventDefault();
++		}
++		else if (e.keyCode == 13 && im_find_list.length) {
++			location.href = im_find_list[im_find_sel].u;
++			e.preventDefault();
++		}
++		return;
++	}
++	if (((e.ctrlKey || e.metaKey) && e.keyCode == 75) || (e.keyCode == 191 && !e.ctrlKey && !e.metaKey && tg != 'input' && tg != 'textarea' && tg != 'select')) {
++		im_find_open();
++		e.preventDefault();
++	}
++}
++
 +// Notices at the top of every page: default passwords, wrong router clock.
 +var pw_default = '<% nvram_match_x("", "http_passwd", "admin", "1"); %>';
 +var psk_default = '<% nvram_match_x("", "rt_wpa_psk", "1234567890", "1"); %>';
@@ -2093,6 +2249,10 @@ index 795a2ee..f557316 100755
 +		du_subscribe(wan_live_show);
 +	}
 +	show_notices();
++	if (!im_find_hooked) {
++		im_find_hooked = 1;
++		d.addEventListener('keydown', im_find_keys, false);
++	}
 +	var lg = d.getElementById('logo');
 +	if (lg)
 +		lg.style.backgroundImage = 'url(/bootstrap/img/libin_logo.png)';
@@ -2127,3 +2287,155 @@ index 795a2ee..f557316 100755
  function submit_language(){
  	if($("select_lang").value != $("preferred_lang").value){
  		showLoading();
+diff --git a/trunk/user/www/n56u_ribbon_fixed/images/favicon.ico b/trunk/user/www/n56u_ribbon_fixed/images/favicon.ico
+index d6395105a4fa3c11b8157f95bdf4107bfe7f7545..e8cf4a05cb7bbff3aece2924beb0d58cbceb9748 100755
+GIT binary patch
+literal 2033
+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
+P00000NkvXXu0mjfWRbj|
+
+literal 5430
+zcmds4drXws75{3CA^x#zn#LGolr+tz+3s4@l^tbZ1{elpKv5VMAM4uvqr2H`Otxv7
+zwlUpFvvHfPRTmc&86LxHU_h94P#7K#%<G#MgANP>@=|D&G!13Vh7fn+>HU3rn~}vw
+z)wW4*^5x$9yXV|<zjGhwcLd=F!U|!{8iCdE!iOsb;Wa@J;^QCm8yJ3yVLxRUYch!k
+zII9GK;s5QT)9F?`ug%HHDQanHS^K>D<Kq)#u~=j#lj*tEFg7;+J$*81A3N7TQx=KU
+zs%f2$Z4fJ?qoZv77MZP57w6KaZ5(dNB2QgLw#}ye-cI=HGbm7(PHscmdQmU`P51AF
+z*Tdm3nOdz|on;C)=5v)N&x=(`@|2~o<u+_O<w{R&`eA2<;-08a-svjcdCY!J_N}92
+ztEtyBco=%#3o;6n?<BN?)hXmPD5N&}D6UH70-IaH`pdSH<LtIsn)xK|J5fv1X4Sm)
+z&zs|W|FSviJd>bulq43o%aSNiy6s>85HzaDXU@Nhxdv@VXrS|8!OW%13uARj3sZG6
+zY2I+>e)3=1TXEZxyV_H!AosZ)38sg>9OyYh{T&DY2K}M#gXFj57fExSd(-FpBK{cK
+z1Loc2Ysxt;Hso&gHEAel(*6iId>OPJDhjq25|M6&|5E-<e`_B3O}k&?d*w0iiiTP>
+z(mKRC^}>+(K^ywKjM)#<aMwGMjJG-W@7{)-&Ghi>x@%N-eRUZLq9M)ftV&%Ft5f&E
+z?_3vW9JV5zTIz4fmFD2OT*gzbl-tXaqweyQDvrh0SbJ=LxprT1%7*3eXT|uLiIpd|
+zT736ozT5v`=fud)?^!`8IwS~RX;?ib2xnQ}&+t2U9_T<1?@T=Vl<dQMBo#b7|3`%#
+ztQ9Zvj=d~b{IAv!3WeTqI-ToZ)_*+9Jn%W>Zcg0XH#s>)y}f<YFA@u$#b&GwvoGE6
+ziHV7mQ&Tsoug^|xZEbSMJa0USo&RZVZhvfS>@&o%?(QBb7X2se;~mC38v6#t*gx?k
+z`^)J*?cZX@c?^if(B}483_XE3+|||n)c@!2{nEJ}*XOpy26dLlm|5X9X1pcYX79Pp
+zW|Q_G_HW!6qt4E*N9^<W-CLu|_S9xnh&5?jp}SmcU(P;{AKtpmkHH&8EgFeCm`p!g
+zg?D<&Rv8DqNF;IsJi==2l(+;i@Cnr56mCN*fmgT<=@Pe)#+Tt2z<J?o^cdCe54G$f
+zmmz&IXv`pYRa%J4@EZ0<A|uq%VFeeHaU8X;Qn}7mp_p@5D#^({UoGP=)u|~M<Nt?t
+zY~enKufchohO{Vn591)?;69KA|8bV9oDv6$jOoCGU>{t_b6&^>A99z;k3iO~Pfi3c
+za#tt_+{jg>oC80?*mCg>I0}pD!9cx=MCLztg>pJrku32EmtI~nSg)W+qnhkRf-fA7
+zd^~&SHnm@ACyU{<%vtjD`Rg?bx>hYG#<hNhxx~_B#?g`%9cA+9bz>U2D-|Z-{9n;V
+z;XVOh3pJ@p;%rrH-Hf+k9NcZNE``9~2CC!)4hI}O&eRi5MB7m!y9Pej_f_IOa60D&
+zSr%|npL7J=&T&D05B$z;NS5Sd*TDV3{M_rWO{0OjRC4O&=b`VZPhaaezhll`A|qd!
+zj2y+=JAqSJSatV`kTci5;V=yxU2{q+#Mz6s-Eb9eC-MB-WG_y<200X_f7M$qry%o>
+zOP_oJ82@K(+gFjYLE@WizrZ=|r84Q>^nID|5x8gHms=$MY175WfrHLkbBDo07wmZw
+z7hUMdSr0zicP4?rNj=3|2)tCX&$wxzB8k9H*?x@2a#a2{h!skekNHO|+ewadJ4OP5
+zU#^6%*O=9C&Af+(+O-rg?>zx*wnOvTcdk8j%bdP2)s(t0-=U(3Mn#Jx-<aJp(5#_r
+z4QwCF6@LWQSG;|Lz38pGu5*dxDBZEh_VdTUiQQ-J2ah4S0DO6X+2WiTG6Cx$C%ALi
+z_O8UAfq_HMb*KqEI$}s%1eYE$BswwXzqIf7;M9X1T8UQ!1Gg4yGbX{Wo#$l|#|Dlw
+z!0-Hk^*~<O{tFs%yidXIBT`-gnZV^jd#LLm4Rs$Ne_KHzu!)N*)oiPRCTq6SaOq~6
+zF>Iz#$(tWx%-fWs8@#-aLYBSczqnfuEMU^U;%nLS*M4&zc^b3HU8{NnIN}OFhoP(Q
+zZ3W*Cb{&>Df53J?x_ABUh1KBxVc37j|Dii#c)MVb<pKVaKMC<%0JyI?rxQ8BpoRI7
+z<pscy8+c3_*4GeQ-yF{oFvg49q>T%99-3x314a5+-qBuo6l49DwMQd82guu+AN85{
+zEe6fn*SXHpS~O{P2U~K;&GL!>I|Kg4UDEyaHtzb<;Mcj-&oGvA*r6B8+4vqHUm3B#
+zN61+Mm){wOe{epLy9C?v3Hb~2<1BI*%z-g}etk_@X~<_>b(vC5Bi3j2LMC8RZA5P4
+zu2n~o-+1cP(mrvUkl``wy7k@oz?H&#zPA0*;huxkZ_!p`JZR2W4PMD7PxEfN*}I>Z
+zkEMHnd&K8qak6c+EtmYpOcHC=i{5H=JaomH3}>)0lUOWdc*gXUO)14FjKvl{PvG+Y
+z-y-Mon)4Tscd<M71>^#)d3jR))ufq54h9VC=I6(2RAnO{6KhnH$jLB{yzIJ(-9wg}
+zg;<UJ3^>1YXfIa+mV!&8J%!}Cn74r3&DWfJ268yZ*RAT+%jp1f>ob3NrD)eGsa>UP
+z3pJ|P8<6sCxQWG+O2tXwe813MTKJiOOyKLicG&hZpCfm4n{w83dA?t~k2)4ZPC0B!
+zC*+mkMizG-lUv5>^EUS<YTv~@%|UjTyiJ-ajPvzz*`+mKgQaxaYL`CgDvQ^6Z%=VK
+z{?_yU<LX$x8L;GTe4N~qaI8NzFMd|re9nJYp6e~Gxlfkj&)R>Q&!05U%ld~W*?7@0
+z#^)a`_dg|yF8PlCf$qzXe;Sn^S1kVe*rs`V=BwX09H(!6e(Up@lUu}@xHaO;x^?2r
+oh6Hiul~2T()8DX>Tc_t8j#n2yxV>pn5#1D3L>2cHnE281Pk~6p9smFU
+
+diff --git a/trunk/user/www/n56u_ribbon_fixed/images/favicon.png b/trunk/user/www/n56u_ribbon_fixed/images/favicon.png
+index 3ea519ea72f11cd4f67ba32954aec625d7ba4db0..267db1e634d28719225f9e448930487f920d28ae 100755
+GIT binary patch
+delta 989
+zcmV<310wv$4e|$&BYy+ANkl<Zc-rlkO=w(I6vuz(zBg}XGBZhL%uGT)wUM+DttPe&
+z6bXn4D!S;ZRzz{*P8V*ZD7e$5E(8%*B7z%{MhjY8C=C@Wk;)`#5F0h$lVm38Wb!ie
+zX6C)?B54-Q$E0GCE_#-achCQK|J-x#J;DyroH(xeA7gqUDSz92m;Dy51fmX7d^-(w
+zkmB2Ese=~39YS%)A&0U19S`9>fV&nz5M+<6f<llz1DF*FMd4`=&?ph&fez||?Ns}l
+zP#6fpN-@Q<Gf65xM#)`U2N4BYqtX8zKv)+KnAJQKeU8@1Nn*iPEEU4jE*fvs9~Xz5
+zGtb=GC}WxLNq-l{H{II}V%suYUj(2zQvC!c5-(8`XvWn=6b6=2Mae6G291Xj1H-T=
+zmGhW}pF%N9a_Iue#jh#rA|is;`p)}6SNt434X;vkZImbwn9U87E{v0PW+-`iL_p!A
+zG5i>fp+^W?af)u9fEi)lzRr(RACN80BBIdRs|+A05PwZq{6%^iULjXppvsIgl^f#v
+z@+Bs7ziyidAZSK8e%~27W6vO>@TnkKXNHS^zk^*)Z(P2*vI8Bpee|`yMb=3XFe41j
+ze?c-mfToNfw1iKPs5*+@3<E-X?N6rdYuKd>04?EedYj(BZ$vPZ#hg9L4-@a<c&n8i
+zh*<SJe}Dh`_>C}zvbdW1jFHU1M&grnCC*Y`brjbtVJZs%PnRj_JR_Nl45tSux;8O?
+z8&5T#Ct%hP@J0B2@hgVrKi_g7w-k4+zXc@*HGu|Z?Ia^h-(rZ5j%XiGw!BF^*p8=N
+z3}vDLjmA(G+7nLIzf6D2d8(}hOU?v8r#>ZQMSm%|c?{)4#Hj3m5`&--<yfqrzp_`j
+z=}gg4+fQ%v>lEA^rdX^vDJF8ikXjo>FlmiE&av3j6v`_^{Pm12UE=c0M<^7Xv1iE^
+zrkS#@Z7As7`+%oi>~fml7QS5nL0L409>x?O5nr5S`T|$xK0#}b`cNl!afYeYA!hAi
+z`hQ#BMu|aN_!M>i2UslJU?lU+onOZyY7<uDA!2Z(`ZP_UM;V;^7_B|J<L5Zt_!_Cz
+zKlpCqUF>q2_S#;;zB>NNUS+MEq2v`ds)~(1p!e1ZZ!a^gUB<J6jAsWCQ7BQgMS2iX
+zB*G738CB$6ALBPKZ_S0rZr#{quUCu+o>tbNH6EIuW<I35^a8W?2+PjorgOI{eWxAY
+zdl78`*lA)ph?rhT%H8oIIt&+XX{t)Y<9^SFYA+M)eh#N{*yH)X`RbM$G{peO00000
+LNkvXXu0mjf0jSGN
+
+delta 1721
+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
+P00000NkvXXu0mjfu8Uv)
