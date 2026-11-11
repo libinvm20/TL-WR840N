@@ -5,6 +5,11 @@ Custom Padavan firmware for the **TP-Link TL-WR845N v4** (MT7628NN, 4 MB flash, 
 - **Smart WAN Watchdog**: the router fixes its own internet drops.
 - **Device Usage**: live download and upload speed and totals for every device, on its own web page.
 - **Dark purple theme**: the whole web UI, including the icons, in dark colours with a purple accent. No extra size.
+- **Quick find**: press **Ctrl+K** (or `/`) on any page, or use the "Find a setting" link in the footer, and type a name like `mac` or `wan` to jump to that settings page.
+- **Device Usage tools**: click a column header to sort, type in the filter box, click an IP or MAC to copy it.
+- **Purple favicon**: a purple Wi-Fi icon in the browser tab.
+- **Notices**: a banner on every page when the admin or Wi-Fi password is still the default, or the router clock is wrong.
+- **Live extras**: the browser tab title shows the live speed, the status bar has a 2-minute speed graph, and Device Usage can export a CSV file.
 - **Wi-Fi QR code**: scan it from the Network Map to join the Wi-Fi.
 - **Login page**: a styled login page instead of the browser pop-up, with the old pop-up kept as a fallback.
 - **Live status bar**: WAN IP, connected time, internet state and live download/upload speed on every page.
@@ -57,6 +62,7 @@ Notes:
 - Connections that were already open when it started are not counted, so totals start from zero.
 - Totals are kept in memory and reset on reboot.
 - To turn it off, run `nvram set du_enable=0 && nvram commit` in **Administration → Console**. Use `du_enable=1` to turn it back on.
+- **Export CSV** saves the table (name, IP, MAC, speeds, totals) as `device-usage.csv`.
 - Cost: it runs every 5 seconds at low priority. If counting takes long (many connections), it automatically waits longer so it uses under about 5 % of the CPU, up to 30 seconds between readings.
 
 ## Dark purple theme
@@ -69,6 +75,7 @@ The web UI uses a dark theme everywhere: panels, tables, tabs, menus, buttons, i
 - **Traffic charts:** the Network Traffic charts (Real Time and Last 24 Hours) use dark panels, dark range buttons and scrollbar, and a purple uplink line (downlink stays orange).
 - **Modern layout and style:** rounded panels with soft shadows, a purple gradient title bar, a sidebar with a highlighted current page and hover effect, lighter and easier-to-read links, uppercase table headers, row hover, purple focus glow on inputs and buttons, dark scrollbars. The page is centred and up to 1240 px wide on large screens, and stacks as cards on phones. The style is added by `state.js` when the page loads, so the CSS files do not grow.
 - **Dark fixes:** ticked rows in the MAC filter, DHCP, firewall, port-forward and similar lists no longer turn light blue, the current menu item is no longer dark teal, and the "someone else is logged in" page is dark.
+- **Background:** a faint purple network-node pattern with a soft glow. It is drawn by CSS inside `state.js` (about 1 KB), so there is no image file.
 - **Purple accent:** every blue became purple: title bars, buttons, links, tabs, focus glow, alert boxes, the ON toggle switch, the loading spinner, the logo and the blue Network Map icons. White text on them is unchanged. Only the colours changed, so file sizes are the same.
 - **Browser cache:** the browser keeps CSS and images for about 30 days. After upgrading, press **Ctrl+F5** to see the new theme.
 
@@ -97,6 +104,16 @@ Opening the router in a browser shows a **login page** (dark purple, with the lo
 - **Fallback:** the link "Use browser login" on the page opens the old pop-up.
 - **Not a new password system:** the same admin username and password are checked in the same way. Change the default `admin` password.
 - **Logout** works as before and brings you back to the login page.
+
+## Notices
+
+A yellow banner appears at the top of every page when:
+
+- the **admin password** is still `admin`,
+- the **Wi-Fi password** is still `1234567890`, or
+- the **router clock** differs from your device's clock by more than 10 minutes (logs and time schedules would be wrong).
+
+Click ✕ to hide it for the current browser session. The password check only asks the router "is it the default?" and never shows the password.
 
 ## Menu
 
