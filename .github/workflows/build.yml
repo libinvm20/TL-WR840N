@@ -21,7 +21,7 @@ jobs:
     container: registry.gitlab.com/hadzhioglu/padavan-ng
     defaults: { run: { shell: bash } }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Get source (pinned commit)
         run: |
@@ -100,7 +100,7 @@ jobs:
           sha256sum Libin_WR845Nv4_v2.bin > SHA256SUMS.txt
 
       - name: Upload firmware
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: Libin-WR845Nv4-v2
           retention-days: 30
